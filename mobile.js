@@ -789,27 +789,55 @@ async function toggleAssistantVoice() {
   }
   voiceRecognition = new Recognition();
   voiceRecognition.lang = "zh-CN";
-  voiceRecognition.interimResults = false;
+  voiceRecognition.interimResults = true;
   voiceRecognition.continuous = false;
+  let hasTranscript = false;
+  let lastTranscript = "";
+  let submittedTranscript = false;
   voiceRecognition.addEventListener("start", () => {
     isRecordingVoice = true;
-    voiceStatusText = "\u6b63\u5728\u542c\u4f60\u8bf4\u8bdd...";
+    voiceStatusText = "\u5df2\u6253\u5f00\u9ea6\u514b\u98ce\uff0c\u8bf7\u76f4\u63a5\u8bf4\u8bdd...";
+    renderAssistant();
+  });
+  voiceRecognition.addEventListener("audiostart", () => {
+    voiceStatusText = "\u9ea6\u514b\u98ce\u5df2\u63a5\u5165\uff0c\u6b63\u5728\u542c...";
+    renderAssistant();
+  });
+  voiceRecognition.addEventListener("speechstart", () => {
+    voiceStatusText = "\u542c\u5230\u4f60\u8bf4\u8bdd\u4e86\uff0c\u6b63\u5728\u8bc6\u522b...";
     renderAssistant();
   });
   voiceRecognition.addEventListener("result", (event) => {
-    const transcript = Array.from(event.results)
+    const transcript = Array.from(event.results, (result) => result[0]?.transcript || "")
+      .join("")
+      .trim();
+    const finalTranscript = Array.from(event.results)
+      .filter((result) => result.isFinal)
       .map((result) => result[0]?.transcript || "")
       .join("")
       .trim();
     if (transcript) {
+      hasTranscript = true;
+      lastTranscript = transcript;
       voiceStatusText = "\u5df2\u8bc6\u522b\uff1a" + transcript;
-      sendAssistantMessage(transcript);
+      renderAssistant();
+    }
+    if (finalTranscript) {
+      lastTranscript = finalTranscript;
+      submittedTranscript = true;
+      sendAssistantMessage(finalTranscript);
     }
   });
   voiceRecognition.addEventListener("error", (event) => {
-    const message = event.error === "not-allowed"
-      ? "\u6d4f\u89c8\u5668\u6ca1\u6709\u62ff\u5230\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u8bf7\u5141\u8bb8\u9ea6\u514b\u98ce\u540e\u518d\u8bd5\u3002"
-      : "\u8bed\u97f3\u6ca1\u6709\u8bc6\u522b\u6210\u529f\uff0c\u53ef\u4ee5\u518d\u8bd5\u4e00\u6b21\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002";
+    const messages = {
+      "not-allowed": "\u6d4f\u89c8\u5668\u6ca1\u6709\u62ff\u5230\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u8bf7\u5728\u5730\u5740\u680f\u5de6\u4fa7\u5141\u8bb8\u9ea6\u514b\u98ce\u540e\u518d\u8bd5\u3002",
+      "service-not-allowed": "\u6d4f\u89c8\u5668\u8bed\u97f3\u670d\u52a1\u88ab\u7981\u7528\uff0c\u8bf7\u6362 Chrome \u6216 Edge \u518d\u8bd5\u3002",
+      "audio-capture": "\u6ca1\u6709\u627e\u5230\u53ef\u7528\u9ea6\u514b\u98ce\uff0c\u8bf7\u68c0\u67e5\u7cfb\u7edf\u8f93\u5165\u8bbe\u5907\u3002",
+      "no-speech": "\u6ca1\u6709\u542c\u5230\u8bed\u97f3\uff0c\u8bf7\u9760\u8fd1\u9ea6\u514b\u98ce\u518d\u8bf4\u4e00\u904d\u3002",
+      network: "\u6d4f\u89c8\u5668\u8bed\u97f3\u8bc6\u522b\u670d\u52a1\u7f51\u7edc\u5931\u8d25\uff0c\u53ef\u80fd\u9700\u8981 Chrome/Edge \u80fd\u8fde\u5230\u5176\u8bed\u97f3\u670d\u52a1\u3002",
+      aborted: "\u8bed\u97f3\u8f93\u5165\u5df2\u505c\u6b62\u3002",
+    };
+    const message = messages[event.error] || ("\u8bed\u97f3\u6ca1\u6709\u8bc6\u522b\u6210\u529f\uff0c\u9519\u8bef\uff1a" + (event.error || "unknown"));
     assistantMessages.push({ role: "assistant", text: message });
     voiceStatusText = "\u8bed\u97f3\u8f93\u5165\u5df2\u7ed3\u675f";
     isRecordingVoice = false;
@@ -819,14 +847,18 @@ async function toggleAssistantVoice() {
   voiceRecognition.addEventListener("end", () => {
     isRecordingVoice = false;
     voiceRecognition = null;
-    if (voiceStatusText === "\u6b63\u5728\u542c\u4f60\u8bf4\u8bdd...") voiceStatusText = "\u6ca1\u6709\u542c\u6e05\uff0c\u53ef\u4ee5\u518d\u70b9\u4e00\u6b21\u8bed\u97f3";
+    if (hasTranscript && lastTranscript && !submittedTranscript) {
+      sendAssistantMessage(lastTranscript);
+      return;
+    }
+    if (voiceStatusText === "\u5df2\u6253\u5f00\u9ea6\u514b\u98ce\uff0c\u8bf7\u76f4\u63a5\u8bf4\u8bdd..." || voiceStatusText === "\u9ea6\u514b\u98ce\u5df2\u63a5\u5165\uff0c\u6b63\u5728\u542c...") voiceStatusText = "\u6ca1\u6709\u542c\u6e05\uff0c\u53ef\u4ee5\u518d\u70b9\u4e00\u6b21\u8bed\u97f3";
     renderAssistant();
   });
   try {
     voiceStatusText = "\u6b63\u5728\u5524\u8d77\u9ea6\u514b\u98ce...";
     isRecordingVoice = true;
-    renderAssistant();
     voiceRecognition.start();
+    renderAssistant();
   } catch {
     voiceStatusText = "\u8bed\u97f3\u8f93\u5165\u542f\u52a8\u5931\u8d25";
     assistantMessages.push({ role: "assistant", text: "\u8bed\u97f3\u8f93\u5165\u6ca1\u6709\u542f\u52a8\u6210\u529f\uff0c\u8bf7\u786e\u8ba4\u6d4f\u89c8\u5668\u5141\u8bb8\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002" });
