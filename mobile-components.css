@@ -1542,3 +1542,111 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+@media (min-width: 900px) {
+  .home-header,
+  .simple-header {
+    max-width: 720px;
+    margin-inline: auto;
+  }
+
+  #screen-home.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    gap: 28px;
+    align-items: start;
+  }
+
+  #screen-home .home-header {
+    grid-column: 1 / -1;
+    width: min(100%, 720px);
+  }
+
+  .hero-section {
+    min-height: 520px;
+    margin-bottom: 0;
+    padding: 34px;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 30px;
+    background: linear-gradient(145deg, rgba(255, 253, 249, 0.7), rgba(255, 239, 223, 0.54));
+    box-shadow: var(--shadow-card);
+  }
+
+  .hero-copy {
+    padding-top: 8px;
+  }
+
+  .hero-copy h1 {
+    max-width: 460px;
+    font-size: 48px;
+  }
+
+  .hero-illustration {
+    right: 24px;
+    bottom: 24px;
+    width: 380px;
+    height: 350px;
+  }
+
+  .quick-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .quick-card {
+    max-width: none;
+    min-height: 214px;
+  }
+
+  .mobile-ai-card {
+    margin-bottom: 18px;
+  }
+
+  .nearby-section,
+  .agent-result {
+    grid-column: 1 / -1;
+  }
+
+  .nearby-scroll {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-flow: row;
+    grid-auto-columns: initial;
+    overflow: visible;
+    padding-inline: 0;
+  }
+
+  .nearby-card {
+    min-height: 230px;
+  }
+
+  #screen-discover.active,
+  #screen-messages.active,
+  #screen-profile.active {
+    max-width: 960px;
+    margin-inline: auto;
+  }
+
+  .discover-list,
+  .message-list,
+  .tool-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .discover-card,
+  .message-card {
+    align-items: flex-start;
+  }
+
+  #screen-assistant.active {
+    max-width: 920px;
+    margin-inline: auto;
+  }
+
+  .assistant-composer {
+    width: min(calc(100% - 96px), 720px);
+  }
+}

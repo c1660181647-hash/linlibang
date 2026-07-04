@@ -509,6 +509,25 @@ textarea {
   }
 }
 
+@media (min-width: 900px) {
+  .phone-app {
+    width: min(calc(100% - 96px), 1120px);
+    padding: 28px 32px calc(118px + env(safe-area-inset-bottom));
+    overflow: visible;
+  }
+
+  .bottom-tabs {
+    width: min(calc(100% - 96px), 720px);
+    min-height: 76px;
+    padding-inline: 18px;
+  }
+
+  .compose-sheet,
+  .profile-sheet {
+    width: min(calc(100% - 96px), 720px);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .hero-section,
   .quick-card,
