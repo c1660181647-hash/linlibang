@@ -170,7 +170,7 @@ h3 {
 .workspace {
   display: grid;
   gap: 22px;
-  padding: 72px 28px 28px;
+  padding: 28px;
 }
 
 .topbar,
@@ -439,41 +439,6 @@ h3 {
   background: linear-gradient(145deg, #ff8c7a, #f25b80);
   color: #fffdfc;
   box-shadow: 0 0 0 5px rgba(242, 91, 128, 0.12);
-}
-
-.device-switcher {
-  position: fixed;
-  right: 28px;
-  top: 18px;
-  z-index: 60;
-  display: inline-flex;
-  gap: 5px;
-  padding: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 999px;
-  background: rgba(255, 253, 249, 0.94);
-  box-shadow: 0 14px 34px rgba(126, 86, 55, 0.16);
-  backdrop-filter: blur(16px);
-}
-
-.device-switcher a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 850;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.device-switcher a.active {
-  background: linear-gradient(145deg, #ffca45, #ff9f87);
-  color: #fffdfc;
-  box-shadow: 0 8px 18px rgba(255, 159, 135, 0.22);
 }
 
 .desktop-voice-status {
@@ -969,15 +934,6 @@ button:focus-visible {
   .workspace,
   .sidebar {
     padding: 16px;
-  }
-
-  .workspace {
-    padding-top: 64px;
-  }
-
-  .device-switcher {
-    top: 12px;
-    right: 16px;
   }
 
   .topbar,
