@@ -36,6 +36,8 @@ const chats = {};
 let voiceRecognition = null;
 let isRecordingVoice = false;
 let voiceStatusText = "";
+let isPressingVoice = false;
+let voiceStopRequested = false;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -602,7 +604,7 @@ function renderAssistant() {
           <section class="assistant-composer">
             <button type="button" class="voice-action ${isRecordingVoice ? "recording" : ""}" id="assistantVoice" aria-label="${isRecordingVoice ? "&#20572;&#27490;&#35821;&#38899;&#36755;&#20837;" : "&#35821;&#38899;&#36755;&#20837;"}" title="${isRecordingVoice ? "&#20572;&#27490;&#35821;&#38899;&#36755;&#20837;" : "&#35821;&#38899;&#36755;&#20837;"}">
               ${icon("mic")}
-              <span>${isRecordingVoice ? "&#21548;&#21462;&#20013;" : "&#35821;&#38899;"}</span>
+              <span>${isRecordingVoice ? "&#26494;&#24320;&#21457;&#36865;" : "&#25353;&#20303;&#35828;"}</span>
             </button>
             <input id="assistantInput" type="text" placeholder="例如：我今天去菜鸟驿站" />
             <button type="button" class="primary-action" id="assistantSend">发送</button>
@@ -779,13 +781,10 @@ async function sendAssistantMessage(message) {
   renderAssistant();
 }
 
-async function toggleAssistantVoice() {
-  if (isRecordingVoice && voiceRecognition) {
-    voiceStatusText = "\u6b63\u5728\u6574\u7406\u521a\u624d\u542c\u5230\u7684\u5185\u5bb9...";
-    voiceRecognition.stop();
-    renderAssistant();
-    return;
-  }
+function startAssistantVoice() {
+  if (isRecordingVoice || voiceRecognition) return;
+  isPressingVoice = true;
+  voiceStopRequested = false;
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Recognition) {
     voiceStatusText = "\u5f53\u524d\u6d4f\u89c8\u5668\u6682\u4e0d\u652f\u6301\u8bed\u97f3\u8f93\u5165";
@@ -796,43 +795,29 @@ async function toggleAssistantVoice() {
   voiceRecognition = new Recognition();
   voiceRecognition.lang = "zh-CN";
   voiceRecognition.interimResults = true;
-  voiceRecognition.continuous = false;
-  let hasTranscript = false;
-  let lastTranscript = "";
-  let submittedTranscript = false;
+  voiceRecognition.continuous = true;
+  voiceRecognition.lastTranscript = "";
   voiceRecognition.addEventListener("start", () => {
     isRecordingVoice = true;
-    voiceStatusText = "\u5df2\u6253\u5f00\u9ea6\u514b\u98ce\uff0c\u8bf7\u76f4\u63a5\u8bf4\u8bdd...";
+    voiceStatusText = "\u6309\u4f4f\u8bf4\u8bdd\uff0c\u677e\u5f00\u540e\u53d1\u9001...";
     renderAssistant();
   });
   voiceRecognition.addEventListener("audiostart", () => {
-    voiceStatusText = "\u9ea6\u514b\u98ce\u5df2\u63a5\u5165\uff0c\u6b63\u5728\u542c...";
+    voiceStatusText = "\u9ea6\u514b\u98ce\u5df2\u63a5\u5165\uff0c\u6309\u4f4f\u7ee7\u7eed\u8bf4...";
     renderAssistant();
   });
   voiceRecognition.addEventListener("speechstart", () => {
-    voiceStatusText = "\u542c\u5230\u4f60\u8bf4\u8bdd\u4e86\uff0c\u6b63\u5728\u8bc6\u522b...";
+    voiceStatusText = "\u542c\u5230\u4f60\u8bf4\u8bdd\u4e86\uff0c\u677e\u5f00\u540e\u53d1\u9001...";
     renderAssistant();
   });
   voiceRecognition.addEventListener("result", (event) => {
     const transcript = Array.from(event.results, (result) => result[0]?.transcript || "")
       .join("")
       .trim();
-    const finalTranscript = Array.from(event.results)
-      .filter((result) => result.isFinal)
-      .map((result) => result[0]?.transcript || "")
-      .join("")
-      .trim();
-    if (transcript) {
-      hasTranscript = true;
-      lastTranscript = transcript;
-      voiceStatusText = "\u5df2\u8bc6\u522b\uff1a" + transcript;
-      renderAssistant();
-    }
-    if (finalTranscript) {
-      lastTranscript = finalTranscript;
-      submittedTranscript = true;
-      sendAssistantMessage(finalTranscript);
-    }
+    if (!transcript) return;
+    voiceRecognition.lastTranscript = transcript;
+    voiceStatusText = "\u5df2\u8bc6\u522b\uff1a" + transcript + "\uff08\u677e\u5f00\u53d1\u9001\uff09";
+    renderAssistant();
   });
   voiceRecognition.addEventListener("error", (event) => {
     const messages = {
@@ -844,20 +829,24 @@ async function toggleAssistantVoice() {
       aborted: "\u8bed\u97f3\u8f93\u5165\u5df2\u505c\u6b62\u3002",
     };
     const message = messages[event.error] || ("\u8bed\u97f3\u6ca1\u6709\u8bc6\u522b\u6210\u529f\uff0c\u9519\u8bef\uff1a" + (event.error || "unknown"));
-    assistantMessages.push({ role: "assistant", text: message });
+    if (event.error !== "aborted" || !voiceStopRequested) assistantMessages.push({ role: "assistant", text: message });
     voiceStatusText = "\u8bed\u97f3\u8f93\u5165\u5df2\u7ed3\u675f";
     isRecordingVoice = false;
+    isPressingVoice = false;
     voiceRecognition = null;
     renderAssistant();
   });
   voiceRecognition.addEventListener("end", () => {
+    const transcript = voiceRecognition?.lastTranscript?.trim() || "";
     isRecordingVoice = false;
+    isPressingVoice = false;
     voiceRecognition = null;
-    if (hasTranscript && lastTranscript && !submittedTranscript) {
-      sendAssistantMessage(lastTranscript);
+    if (transcript) {
+      voiceStatusText = "\u5df2\u53d1\u9001\u8bed\u97f3\u6587\u5b57\uff1a" + transcript;
+      sendAssistantMessage(transcript);
       return;
     }
-    if (voiceStatusText === "\u5df2\u6253\u5f00\u9ea6\u514b\u98ce\uff0c\u8bf7\u76f4\u63a5\u8bf4\u8bdd..." || voiceStatusText === "\u9ea6\u514b\u98ce\u5df2\u63a5\u5165\uff0c\u6b63\u5728\u542c...") voiceStatusText = "\u6ca1\u6709\u542c\u6e05\uff0c\u53ef\u4ee5\u518d\u70b9\u4e00\u6b21\u8bed\u97f3";
+    voiceStatusText = voiceStopRequested ? "\u6ca1\u6709\u542c\u6e05\uff0c\u53ef\u4ee5\u957f\u6309\u518d\u8bf4\u4e00\u6b21" : voiceStatusText;
     renderAssistant();
   });
   try {
@@ -869,9 +858,22 @@ async function toggleAssistantVoice() {
     voiceStatusText = "\u8bed\u97f3\u8f93\u5165\u542f\u52a8\u5931\u8d25";
     assistantMessages.push({ role: "assistant", text: "\u8bed\u97f3\u8f93\u5165\u6ca1\u6709\u542f\u52a8\u6210\u529f\uff0c\u8bf7\u786e\u8ba4\u6d4f\u89c8\u5668\u5141\u8bb8\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002" });
     isRecordingVoice = false;
+    isPressingVoice = false;
     voiceRecognition = null;
     renderAssistant();
   }
+}
+
+function stopAssistantVoice() {
+  if (!voiceRecognition) return;
+  voiceStopRequested = true;
+  voiceStatusText = "\u6b63\u5728\u6574\u7406\u521a\u624d\u542c\u5230\u7684\u5185\u5bb9...";
+  try {
+    voiceRecognition.stop();
+  } catch {
+    voiceRecognition.abort();
+  }
+  renderAssistant();
 }
 
 function publishAssistantPost() {
@@ -1009,7 +1011,7 @@ function bindEvents() {
       }
     }
     if (button.id === "assistantSend") sendAssistantMessage($("#assistantInput").value);
-    if (button.id === "assistantVoice") toggleAssistantVoice();
+    if (button.id === "assistantVoice") return;
     if (button.id === "privateChatSend") sendPrivateChat();
 
     if (button.dataset.assistantExample) {
@@ -1067,6 +1069,25 @@ function bindEvents() {
       composeCategory = button.dataset.composeCategory;
       syncComposeControls();
     }
+  });
+
+  document.body.addEventListener("pointerdown", (event) => {
+    const button = event.target.closest("#assistantVoice");
+    if (!button) return;
+    event.preventDefault();
+    button.setPointerCapture?.(event.pointerId);
+    startAssistantVoice();
+  });
+
+  document.body.addEventListener("pointerup", (event) => {
+    const button = event.target.closest("#assistantVoice");
+    if (!button && !isPressingVoice) return;
+    event.preventDefault();
+    stopAssistantVoice();
+  });
+
+  document.body.addEventListener("pointercancel", () => {
+    if (isPressingVoice) stopAssistantVoice();
   });
 
   document.body.addEventListener("keydown", (event) => {

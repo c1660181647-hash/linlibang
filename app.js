@@ -123,6 +123,8 @@ let desktopDiscoverSearch = "";
 let desktopVoiceRecognition = null;
 let desktopVoiceRecording = false;
 let desktopVoiceStatusText = "";
+let desktopVoicePressing = false;
+let desktopVoiceStopRequested = false;
 const desktopPosts = [
   { id: "seed-1", title: "傍晚散步局", text: "今天 19:30，梧桐步道慢走 30 分钟。", count: "5人感兴趣", author: "阿树", time: "刚刚", heat: 88, category: "offer" },
   { id: "seed-2", title: "共享工具角", text: "小推车、折叠梯、打气筒今天可借。", count: "4件可用", author: "物业工具柜", time: "1小时前", heat: 76, category: "offer" },
@@ -343,7 +345,7 @@ function updateDesktopVoiceButton() {
   button.setAttribute("title", desktopVoiceRecording ? "停止语音输入" : "语音输入");
   button.innerHTML = `
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/><path d="M8 22h8"/></svg>
-    <span>${desktopVoiceRecording ? "听取中" : "语音"}</span>
+    <span>${desktopVoiceRecording ? "松开发送" : "按住说"}</span>
   `;
 }
 
@@ -486,13 +488,10 @@ async function sendDesktopAssistantMessage() {
   renderDesktopAssistant();
 }
 
-async function toggleDesktopAssistantVoice() {
-  if (desktopVoiceRecording && desktopVoiceRecognition) {
-    desktopVoiceStatusText = "\u6b63\u5728\u6574\u7406\u521a\u624d\u542c\u5230\u7684\u5185\u5bb9...";
-    desktopVoiceRecognition.stop();
-    renderDesktopAssistant();
-    return;
-  }
+function startDesktopAssistantVoice() {
+  if (desktopVoiceRecording || desktopVoiceRecognition) return;
+  desktopVoicePressing = true;
+  desktopVoiceStopRequested = false;
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Recognition) {
     desktopVoiceStatusText = "\u5f53\u524d\u6d4f\u89c8\u5668\u6682\u4e0d\u652f\u6301\u8bed\u97f3\u8f93\u5165";
@@ -503,44 +502,29 @@ async function toggleDesktopAssistantVoice() {
   desktopVoiceRecognition = new Recognition();
   desktopVoiceRecognition.lang = "zh-CN";
   desktopVoiceRecognition.interimResults = true;
-  desktopVoiceRecognition.continuous = false;
-  let hasTranscript = false;
-  let lastTranscript = "";
-  let submittedTranscript = false;
+  desktopVoiceRecognition.continuous = true;
+  desktopVoiceRecognition.lastTranscript = "";
   desktopVoiceRecognition.addEventListener("start", () => {
     desktopVoiceRecording = true;
-    desktopVoiceStatusText = "\u5df2\u6253\u5f00\u9ea6\u514b\u98ce\uff0c\u8bf7\u76f4\u63a5\u8bf4\u8bdd...";
+    desktopVoiceStatusText = "\u6309\u4f4f\u8bf4\u8bdd\uff0c\u677e\u5f00\u540e\u53d1\u9001...";
     renderDesktopAssistant();
   });
   desktopVoiceRecognition.addEventListener("audiostart", () => {
-    desktopVoiceStatusText = "\u9ea6\u514b\u98ce\u5df2\u63a5\u5165\uff0c\u6b63\u5728\u542c...";
+    desktopVoiceStatusText = "\u9ea6\u514b\u98ce\u5df2\u63a5\u5165\uff0c\u6309\u4f4f\u7ee7\u7eed\u8bf4...";
     renderDesktopAssistant();
   });
   desktopVoiceRecognition.addEventListener("speechstart", () => {
-    desktopVoiceStatusText = "\u542c\u5230\u4f60\u8bf4\u8bdd\u4e86\uff0c\u6b63\u5728\u8bc6\u522b...";
+    desktopVoiceStatusText = "\u542c\u5230\u4f60\u8bf4\u8bdd\u4e86\uff0c\u677e\u5f00\u540e\u53d1\u9001...";
     renderDesktopAssistant();
   });
   desktopVoiceRecognition.addEventListener("result", (event) => {
     const transcript = Array.from(event.results, (result) => result[0]?.transcript || "")
       .join("")
       .trim();
-    const finalTranscript = Array.from(event.results)
-      .filter((result) => result.isFinal)
-      .map((result) => result[0]?.transcript || "")
-      .join("")
-      .trim();
-    if (transcript) {
-      hasTranscript = true;
-      lastTranscript = transcript;
-      desktopVoiceStatusText = "\u5df2\u8bc6\u522b\uff1a" + transcript;
-      renderDesktopAssistant();
-    }
-    if (finalTranscript) {
-      submittedTranscript = true;
-      const input = $("#desktopAssistantInput");
-      if (input) input.value = finalTranscript;
-      sendDesktopAssistantMessage();
-    }
+    if (!transcript) return;
+    desktopVoiceRecognition.lastTranscript = transcript;
+    desktopVoiceStatusText = "\u5df2\u8bc6\u522b\uff1a" + transcript + "\uff08\u677e\u5f00\u53d1\u9001\uff09";
+    renderDesktopAssistant();
   });
   desktopVoiceRecognition.addEventListener("error", (event) => {
     const messages = {
@@ -552,23 +536,27 @@ async function toggleDesktopAssistantVoice() {
       aborted: "\u8bed\u97f3\u8f93\u5165\u5df2\u505c\u6b62\u3002",
     };
     const message = messages[event.error] || ("\u8bed\u97f3\u6ca1\u6709\u8bc6\u522b\u6210\u529f\uff0c\u9519\u8bef\uff1a" + (event.error || "unknown"));
-    desktopAssistantMessages.push({ role: "assistant", text: message });
+    if (event.error !== "aborted" || !desktopVoiceStopRequested) desktopAssistantMessages.push({ role: "assistant", text: message });
     desktopVoiceStatusText = "\u8bed\u97f3\u8f93\u5165\u5df2\u7ed3\u675f";
     desktopVoiceRecording = false;
+    desktopVoicePressing = false;
     desktopVoiceRecognition = null;
     renderDesktopAssistant();
   });
   desktopVoiceRecognition.addEventListener("end", () => {
+    const transcript = desktopVoiceRecognition?.lastTranscript?.trim() || "";
     desktopVoiceRecording = false;
+    desktopVoicePressing = false;
     desktopVoiceRecognition = null;
-    if (hasTranscript && lastTranscript && !submittedTranscript) {
+    if (transcript) {
+      desktopVoiceStatusText = "\u5df2\u53d1\u9001\u8bed\u97f3\u6587\u5b57\uff1a" + transcript;
       const input = $("#desktopAssistantInput");
-      if (input) input.value = lastTranscript;
+      if (input) input.value = transcript;
       sendDesktopAssistantMessage();
       return;
     }
-    if (desktopVoiceStatusText === "\u5df2\u6253\u5f00\u9ea6\u514b\u98ce\uff0c\u8bf7\u76f4\u63a5\u8bf4\u8bdd..." || desktopVoiceStatusText === "\u9ea6\u514b\u98ce\u5df2\u63a5\u5165\uff0c\u6b63\u5728\u542c...") desktopVoiceStatusText = "\u6ca1\u6709\u542c\u6e05\uff0c\u53ef\u4ee5\u518d\u70b9\u4e00\u6b21\u8bed\u97f3";
-    updateDesktopVoiceButton();
+    desktopVoiceStatusText = desktopVoiceStopRequested ? "\u6ca1\u6709\u542c\u6e05\uff0c\u53ef\u4ee5\u957f\u6309\u518d\u8bf4\u4e00\u6b21" : desktopVoiceStatusText;
+    renderDesktopAssistant();
   });
   try {
     desktopVoiceStatusText = "\u6b63\u5728\u5524\u8d77\u9ea6\u514b\u98ce...";
@@ -579,9 +567,22 @@ async function toggleDesktopAssistantVoice() {
     desktopVoiceStatusText = "\u8bed\u97f3\u8f93\u5165\u542f\u52a8\u5931\u8d25";
     desktopAssistantMessages.push({ role: "assistant", text: "\u8bed\u97f3\u8f93\u5165\u6ca1\u6709\u542f\u52a8\u6210\u529f\uff0c\u8bf7\u786e\u8ba4\u6d4f\u89c8\u5668\u5141\u8bb8\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002" });
     desktopVoiceRecording = false;
+    desktopVoicePressing = false;
     desktopVoiceRecognition = null;
     renderDesktopAssistant();
   }
+}
+
+function stopDesktopAssistantVoice() {
+  if (!desktopVoiceRecognition) return;
+  desktopVoiceStopRequested = true;
+  desktopVoiceStatusText = "\u6b63\u5728\u6574\u7406\u521a\u624d\u542c\u5230\u7684\u5185\u5bb9...";
+  try {
+    desktopVoiceRecognition.stop();
+  } catch {
+    desktopVoiceRecognition.abort();
+  }
+  renderDesktopAssistant();
 }
 
 function getDesktopDiscoverPosts() {
@@ -891,7 +892,19 @@ function initEvents() {
   $("#assistantParse").addEventListener("click", parseAndRender);
   $("#assistantPolish").addEventListener("click", polishRequestText);
   $("#desktopAssistantSend").addEventListener("click", sendDesktopAssistantMessage);
-  $("#desktopAssistantVoice").addEventListener("click", toggleDesktopAssistantVoice);
+  const desktopVoiceButton = $("#desktopAssistantVoice");
+  desktopVoiceButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    desktopVoiceButton.setPointerCapture?.(event.pointerId);
+    startDesktopAssistantVoice();
+  });
+  desktopVoiceButton.addEventListener("pointerup", (event) => {
+    event.preventDefault();
+    stopDesktopAssistantVoice();
+  });
+  desktopVoiceButton.addEventListener("pointercancel", () => {
+    if (desktopVoicePressing) stopDesktopAssistantVoice();
+  });
   $("#desktopAssistantInput").addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
     event.preventDefault();
