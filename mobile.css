@@ -198,14 +198,16 @@ svg {
   place-items: center;
   width: 24px;
   height: 24px;
+  border: 1px solid rgba(98, 78, 57, 0.22);
   border-radius: 8px;
-  background: currentColor;
-  color: var(--bg-surface);
+  background: #fff6e5;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 900;
 }
 
 .bottom-tabs button.active .ai-tab-icon {
+  border-color: var(--text-primary);
   background: var(--text-primary);
   color: #fffdfc;
 }
