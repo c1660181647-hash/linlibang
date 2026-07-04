@@ -748,6 +748,12 @@
   margin-bottom: 14px;
 }
 
+.assistant-workspace,
+.assistant-conversation-panel {
+  display: grid;
+  gap: 12px;
+}
+
 #screen-assistant {
   padding-bottom: 108px;
 }
@@ -1939,24 +1945,45 @@
   }
 
   #screen-assistant .assistant-page-shell {
-    grid-template-columns: minmax(0, 1fr) 320px;
     gap: 14px;
     align-items: start;
   }
 
   #screen-assistant .assistant-hero-header,
   #screen-assistant .assistant-example-row {
-    grid-column: 1 / -1;
+    grid-column: auto;
+  }
+
+  #screen-assistant .assistant-workspace {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    border-radius: 28px;
+    background: rgba(255, 253, 250, 0.62);
+    box-shadow: var(--shadow-card);
+  }
+
+  #screen-assistant .assistant-conversation-panel {
+    align-content: start;
   }
 
   #screen-assistant .assistant-chat,
   #screen-assistant .assistant-suggestions {
     align-self: start;
     margin-bottom: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  #screen-assistant .assistant-chat {
     padding: 14px;
     border: 1px solid rgba(255, 255, 255, 0.78);
     border-radius: 24px;
-    background: rgba(255, 253, 250, 0.58);
+    background: rgba(255, 253, 250, 0.72);
     box-shadow: var(--shadow-light);
   }
 
@@ -1970,8 +1997,8 @@
   }
 
   #screen-assistant .assistant-composer {
-    grid-column: 1;
     margin-top: 0;
+    box-shadow: var(--shadow-light);
   }
 
   #screen-profile .profile-care-grid {

@@ -589,18 +589,22 @@ function renderAssistant() {
         <button type="button" data-assistant-example="我今天加班，没时间接孩子，有没有邻居下午6点帮忙接一下">我需要邻居帮忙接孩子</button>
         <button type="button" data-assistant-example="谁有小推车可以借我搬两箱东西，半小时后还">我想借个工具</button>
       </section>
-      <section class="assistant-chat" id="assistantChatLog">
-        ${assistantMessages.map(AssistantBubble).join("")}
-      </section>
-      <section class="assistant-suggestions" id="assistantSuggestions">
-        ${pendingAssistantPost ? AssistantPublishCard(pendingAssistantPost) : ""}
-        ${assistantHelpers.map(AssistantHelperCard).join("")}
-        ${assistantSuggestions.map(AssistantHelpCard).join("")}
-        ${!pendingAssistantPost && !assistantHelpers.length && !assistantSuggestions.length ? AssistantEmptyState() : ""}
-      </section>
-      <section class="assistant-composer">
-        <input id="assistantInput" type="text" placeholder="例如：我今天去菜鸟驿站" />
-        <button type="button" class="primary-action" id="assistantSend">发送</button>
+      <section class="assistant-workspace">
+        <div class="assistant-conversation-panel">
+          <section class="assistant-chat" id="assistantChatLog">
+            ${assistantMessages.map(AssistantBubble).join("")}
+          </section>
+          <section class="assistant-composer">
+            <input id="assistantInput" type="text" placeholder="例如：我今天去菜鸟驿站" />
+            <button type="button" class="primary-action" id="assistantSend">发送</button>
+          </section>
+        </div>
+        <section class="assistant-suggestions" id="assistantSuggestions">
+          ${pendingAssistantPost ? AssistantPublishCard(pendingAssistantPost) : ""}
+          ${assistantHelpers.map(AssistantHelperCard).join("")}
+          ${assistantSuggestions.map(AssistantHelpCard).join("")}
+          ${!pendingAssistantPost && !assistantHelpers.length && !assistantSuggestions.length ? AssistantEmptyState() : ""}
+        </section>
       </section>
     </section>
   `;
