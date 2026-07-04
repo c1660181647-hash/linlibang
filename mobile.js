@@ -742,6 +742,12 @@ function buildPostFromAssistant(result, text) {
   };
 }
 
+function assistantSourceNote(result) {
+  if (result.source === "model") return "";
+  if (result.modelError) return `（当前使用本地规则：模型接口返回 ${result.modelError}）`;
+  return "（当前使用本地规则：未连接大模型）";
+}
+
 async function sendAssistantMessage(message) {
   const text = message.trim();
   if (!text) return;
@@ -758,7 +764,7 @@ async function sendAssistantMessage(message) {
     const result = await response.json();
     assistantMessages.pop();
     const targetText = result.intent?.type === "help_request" ? "下面是可能能帮忙的邻居" : "下面是可能顺路匹配的求助";
-    assistantMessages.push({ role: "assistant", text: `${result.reply || "我整理好了。"} ${targetText}。要不要我帮你发一条帖子，让邻居在发现里看到？` });
+    assistantMessages.push({ role: "assistant", text: `${result.reply || "我整理好了。"} ${targetText}。要不要我帮你发一条帖子，让邻居在发现里看到？${assistantSourceNote(result)}` });
     assistantSuggestions = result.nearbyRequests || [];
     assistantHelpers = result.nearbyHelpers || [];
     pendingAssistantPost = buildPostFromAssistant(result, text);

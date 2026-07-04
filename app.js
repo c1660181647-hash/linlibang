@@ -449,6 +449,12 @@ function buildDesktopPost(result, text) {
   };
 }
 
+function assistantSourceNote(result) {
+  if (result.source === "model") return "";
+  if (result.modelError) return `（当前使用本地规则：模型接口返回 ${result.modelError}）`;
+  return "（当前使用本地规则：未连接大模型）";
+}
+
 async function sendDesktopAssistantMessage() {
   const input = $("#desktopAssistantInput");
   const text = input.value.trim();
@@ -466,7 +472,7 @@ async function sendDesktopAssistantMessage() {
     });
     const result = await response.json();
     desktopAssistantMessages.pop();
-    desktopAssistantMessages.push({ role: "assistant", text: `${result.reply || "我整理好了，可以看看下面的附近求助。"} 要不要我帮你发一条帖子？` });
+    desktopAssistantMessages.push({ role: "assistant", text: `${result.reply || "我整理好了，可以看看下面的附近求助。"} 要不要我帮你发一条帖子？${assistantSourceNote(result)}` });
     desktopAssistantSuggestions = result.nearbyRequests || [];
     desktopAssistantHelpers = result.nearbyHelpers || [];
     desktopPendingPost = buildDesktopPost(result, text);
