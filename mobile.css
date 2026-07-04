@@ -221,6 +221,41 @@ svg {
   font-weight: 700;
 }
 
+.device-switcher {
+  position: fixed;
+  right: 16px;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  z-index: 21;
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: 999px;
+  background: rgba(255, 252, 247, 0.94);
+  box-shadow: 0 12px 30px rgba(126, 86, 55, 0.16);
+  backdrop-filter: blur(16px);
+}
+
+.device-switcher a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.device-switcher a.active {
+  background: linear-gradient(145deg, #ffca45, #ff9f87);
+  color: #fffdfc;
+  box-shadow: 0 8px 18px rgba(255, 159, 135, 0.22);
+}
+
 .publish-tab {
   transform: translateY(-18px);
 }
@@ -520,6 +555,11 @@ textarea {
     width: min(calc(100% - 96px), 720px);
     min-height: 76px;
     padding-inline: 18px;
+  }
+
+  .device-switcher {
+    right: max(32px, calc((100vw - 1120px) / 2 + 32px));
+    bottom: calc(106px + env(safe-area-inset-bottom));
   }
 
   .compose-sheet,
