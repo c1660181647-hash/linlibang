@@ -1642,8 +1642,8 @@
 
   #screen-home.active {
     display: grid;
-    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-    gap: 28px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
     align-items: start;
   }
 
@@ -1673,10 +1673,10 @@
 
   .hero-section {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
-    gap: 22px;
+    grid-template-columns: minmax(0, 1fr) 390px;
+    gap: 34px;
     align-items: center;
-    min-height: 520px;
+    min-height: 500px;
     margin-bottom: 0;
     padding: 42px 34px 42px 42px;
     border: 1px solid rgba(255, 255, 255, 0.78);
@@ -1690,20 +1690,21 @@
   }
 
   .hero-copy h1 {
-    max-width: 470px;
-    font-size: 48px;
+    max-width: 620px;
+    font-size: 52px;
+    word-break: keep-all;
   }
 
   .hero-copy p {
-    max-width: 455px;
+    max-width: 590px;
   }
 
   .hero-proof {
-    max-width: 360px;
+    max-width: 460px;
   }
 
   .hero-stats {
-    max-width: 390px;
+    max-width: 520px;
   }
 
   .hero-illustration {
@@ -1714,6 +1715,10 @@
     justify-self: end;
     width: 350px;
     height: 330px;
+  }
+
+  .quick-grid {
+    grid-column: 1;
   }
 
   .hero-illustration .sky-note {
@@ -1753,7 +1758,7 @@
 
   .nearby-section,
   .agent-result {
-    grid-column: 1 / -1;
+    grid-column: 1;
   }
 
   .nearby-scroll {
