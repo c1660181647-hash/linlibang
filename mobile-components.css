@@ -139,6 +139,22 @@
   padding: 24px 0 0;
 }
 
+.hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 30px;
+  margin-bottom: 14px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 999px;
+  background: rgba(255, 252, 247, 0.86);
+  color: #e27d66;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: var(--shadow-light);
+}
+
 .hero-copy h1 {
   margin: 0;
   max-width: 340px;
@@ -163,6 +179,80 @@
   font-size: 16px;
   font-weight: 500;
   line-height: 1.65;
+}
+
+.hero-pain-points,
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-pain-points {
+  margin-top: 16px;
+}
+
+.hero-pain-points span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 253, 250, 0.84);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: var(--shadow-light);
+}
+
+.hero-proof {
+  display: grid;
+  gap: 5px;
+  max-width: 320px;
+  margin-top: 16px;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 18px;
+  background: rgba(255, 253, 250, 0.9);
+  box-shadow: var(--shadow-card);
+}
+
+.hero-proof strong {
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.hero-proof span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hero-stats {
+  margin-top: 16px;
+}
+
+.hero-stats div {
+  min-width: 82px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 241, 191, 0.82);
+  box-shadow: var(--shadow-light);
+}
+
+.hero-stats strong,
+.hero-stats span {
+  display: block;
+}
+
+.hero-stats strong {
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.hero-stats span {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
 }
 
 .short-line {
@@ -1563,9 +1653,9 @@
   }
 
   .hero-section {
-    min-height: 520px;
+    min-height: 560px;
     margin-bottom: 0;
-    padding: 34px;
+    padding: 42px;
     border: 1px solid rgba(255, 255, 255, 0.78);
     border-radius: 30px;
     background: linear-gradient(145deg, rgba(255, 253, 249, 0.7), rgba(255, 239, 223, 0.54));
@@ -1577,15 +1667,23 @@
   }
 
   .hero-copy h1 {
-    max-width: 460px;
-    font-size: 48px;
+    max-width: 500px;
+    font-size: 54px;
+  }
+
+  .hero-copy p {
+    max-width: 470px;
+  }
+
+  .hero-proof {
+    max-width: 390px;
   }
 
   .hero-illustration {
-    right: 24px;
-    bottom: 24px;
-    width: 380px;
-    height: 350px;
+    right: 32px;
+    bottom: 36px;
+    width: 410px;
+    height: 372px;
   }
 
   .quick-grid {

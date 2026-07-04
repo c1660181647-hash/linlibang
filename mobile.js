@@ -96,7 +96,23 @@ function HeroSection() {
   return `
     <section class="hero-section">
       <div class="hero-copy">
+        <span class="hero-kicker">邻里互助 · 顺路帮忙 · 安心托付</span>
         <h1>远亲不如近邻，<br />省心省力邻里帮。</h1>
+        <p>临时取件、接送孩子、借个小工具，很多小事不用硬扛。把需求说给 AI 助手，附近愿意帮忙的邻居就能更快看见。</p>
+        <div class="hero-pain-points" aria-label="常见互助场景">
+          <span>没时间取快递</span>
+          <span>下班赶不上接娃</span>
+          <span>工具只用一次</span>
+        </div>
+        <div class="hero-proof" aria-label="邻居反馈">
+          <strong>“昨天 6 点临时求助，8 分钟就有同楼栋邻居回应。”</strong>
+          <span>3 栋住户 安安</span>
+        </div>
+        <div class="hero-stats" aria-label="社区互助数据">
+          <div><strong>128</strong><span>次顺路帮忙</span></div>
+          <div><strong>36</strong><span>件工具共享</span></div>
+          <div><strong>92%</strong><span>当天响应</span></div>
+        </div>
         <span class="short-line" aria-hidden="true"></span>
       </div>
       <div class="hero-illustration" aria-label="原创社区生活插画">
