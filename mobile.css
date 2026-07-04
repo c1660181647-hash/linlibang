@@ -84,7 +84,7 @@ svg {
   width: min(100%, 460px);
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 18px 20px calc(108px + env(safe-area-inset-bottom));
+  padding: calc(58px + env(safe-area-inset-top)) 20px calc(108px + env(safe-area-inset-bottom));
   overflow: hidden;
 }
 
@@ -223,8 +223,8 @@ svg {
 
 .device-switcher {
   position: fixed;
-  right: 16px;
-  bottom: calc(92px + env(safe-area-inset-bottom));
+  top: calc(10px + env(safe-area-inset-top));
+  left: 50%;
   z-index: 21;
   display: inline-flex;
   gap: 4px;
@@ -234,6 +234,7 @@ svg {
   background: rgba(255, 252, 247, 0.94);
   box-shadow: 0 12px 30px rgba(126, 86, 55, 0.16);
   backdrop-filter: blur(16px);
+  transform: translateX(-50%);
 }
 
 .device-switcher a {
@@ -547,7 +548,7 @@ textarea {
 @media (min-width: 900px) {
   .phone-app {
     width: min(calc(100% - 96px), 1120px);
-    padding: 28px 32px calc(118px + env(safe-area-inset-bottom));
+    padding: calc(70px + env(safe-area-inset-top)) 32px calc(118px + env(safe-area-inset-bottom));
     overflow: visible;
   }
 
@@ -558,8 +559,10 @@ textarea {
   }
 
   .device-switcher {
+    top: calc(16px + env(safe-area-inset-top));
     right: max(32px, calc((100vw - 1120px) / 2 + 32px));
-    bottom: calc(106px + env(safe-area-inset-bottom));
+    left: auto;
+    transform: none;
   }
 
   .compose-sheet,
