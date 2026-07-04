@@ -323,8 +323,54 @@ h3 {
   gap: 14px;
 }
 
+.desktop-assistant {
+  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.desktop-assistant-intro {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(255, 253, 249, 0.96), rgba(255, 241, 191, 0.62));
+  box-shadow: var(--soft-shadow);
+}
+
+.desktop-assistant-intro strong {
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.desktop-assistant-intro span {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.desktop-example-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.desktop-example-row button {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff8ea;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .assistant-chat-panel {
   max-width: 920px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 249, 0.64);
+  box-shadow: var(--soft-shadow);
 }
 
 .desktop-chat-bubble {
@@ -820,7 +866,8 @@ button:focus-visible {
 
   .compose-layout,
   .task-grid,
-  .resident-layout {
+  .resident-layout,
+  .desktop-assistant {
     grid-template-columns: 1fr;
   }
 

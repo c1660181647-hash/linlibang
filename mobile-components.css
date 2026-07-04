@@ -666,6 +666,81 @@
   line-height: 1.55;
 }
 
+.assistant-page-shell {
+  display: grid;
+  gap: 14px;
+}
+
+.assistant-hero-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(255, 253, 250, 0.98), rgba(255, 242, 224, 0.9));
+  box-shadow: var(--shadow-card);
+}
+
+.assistant-hero-header p {
+  margin: 0 0 6px;
+  color: #e27d66;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.assistant-hero-header h1 {
+  margin: 0;
+  max-width: 560px;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.assistant-hero-header span {
+  display: block;
+  max-width: 580px;
+  margin-top: 9px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.assistant-hero-header button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: #fff1bf;
+  color: var(--text-primary);
+  font-weight: 800;
+}
+
+.assistant-example-row {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.assistant-example-row::-webkit-scrollbar {
+  display: none;
+}
+
+.assistant-example-row button {
+  flex: 0 0 auto;
+  max-width: 230px;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: rgba(255, 253, 250, 0.88);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: var(--shadow-light);
+}
+
 .assistant-chat,
 .assistant-suggestions {
   display: grid;
@@ -745,6 +820,27 @@
   border-radius: 20px;
   background: linear-gradient(145deg, #fff1bf, #ffe1e6);
   box-shadow: var(--shadow-card);
+}
+
+.assistant-empty-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px dashed rgba(226, 125, 102, 0.34);
+  border-radius: 20px;
+  background: rgba(255, 253, 250, 0.68);
+  color: var(--text-secondary);
+}
+
+.assistant-empty-card strong {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.assistant-empty-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .assistant-publish-card p {
@@ -1598,6 +1694,33 @@
   font-weight: 800;
 }
 
+.profile-care-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.profile-care-grid article {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 20px;
+  background: rgba(255, 253, 250, 0.92);
+  box-shadow: var(--shadow-card);
+}
+
+.profile-care-grid strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+
+.profile-care-grid p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 @media (max-width: 390px) {
   .hero-section {
     min-height: 430px;
@@ -1780,6 +1903,24 @@
     margin-inline: auto;
   }
 
+  #screen-discover .simple-header,
+  #screen-profile .simple-header,
+  #screen-messages .simple-header {
+    max-width: none;
+    margin: 0 0 16px;
+    padding: 18px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 24px;
+    background: rgba(255, 252, 247, 0.72);
+    box-shadow: var(--shadow-light);
+  }
+
+  #screen-discover .simple-header h1,
+  #screen-profile .simple-header h1,
+  #screen-messages .simple-header h1 {
+    max-width: none;
+  }
+
   .discover-list,
   .message-list,
   .tool-list {
@@ -1792,11 +1933,46 @@
   }
 
   #screen-assistant.active {
-    max-width: 920px;
+    max-width: 1040px;
     margin-inline: auto;
   }
 
+  #screen-assistant .assistant-page-shell {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    align-items: start;
+  }
+
+  #screen-assistant .assistant-hero-header,
+  #screen-assistant .assistant-example-row {
+    grid-column: 1 / -1;
+  }
+
+  #screen-assistant .assistant-chat,
+  #screen-assistant .assistant-suggestions {
+    min-height: 330px;
+    margin-bottom: 0;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 24px;
+    background: rgba(255, 253, 250, 0.58);
+    box-shadow: var(--shadow-light);
+  }
+
+  #screen-assistant .assistant-suggestions {
+    align-content: start;
+  }
+
   .assistant-composer {
-    width: min(calc(100% - 96px), 720px);
+    position: static;
+    width: 100%;
+  }
+
+  #screen-assistant .assistant-composer {
+    grid-column: 1;
+    margin-top: -2px;
+  }
+
+  #screen-profile .profile-care-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

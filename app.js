@@ -786,6 +786,13 @@ function initEvents() {
       renderDesktopDiscover();
     });
   });
+  $$("[data-desktop-example]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = $("#desktopAssistantInput");
+      input.value = button.dataset.desktopExample;
+      input.focus();
+    });
+  });
   document.body.addEventListener("click", (event) => {
     const button = event.target.closest("button");
     if (!button) return;

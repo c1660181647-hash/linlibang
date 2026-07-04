@@ -423,6 +423,20 @@ function renderProfile() {
       <div><span>准时履约</span><strong>98%</strong></div>
       <div><span>近 30 天投诉</span><strong>0</strong></div>
     </section>
+    <section class="profile-care-grid" aria-label="常用邻里服务">
+      <article>
+        <strong>我的求助</strong>
+        <p>查看正在等待回应的帖子，及时和邻居确认时间地点。</p>
+      </article>
+      <article>
+        <strong>我能帮忙</strong>
+        <p>管理顺路可帮、工具可借等帮助信息，让邻居更容易找到你。</p>
+      </article>
+      <article>
+        <strong>信任守护</strong>
+        <p>同小区认证、履约记录和投诉情况会帮助双方安心互助。</p>
+      </article>
+    </section>
   `;
 }
 
@@ -561,25 +575,43 @@ function getDiscoverPosts() {
 
 function renderAssistant() {
   $("#screen-assistant").innerHTML = `
-    <header class="simple-header">
-      <div>
-        <p>AI 助手</p>
-        <h1>说一句话，匹配顺路互助</h1>
-      </div>
-      <button type="button" data-action="open-ai-compose">发布</button>
-    </header>
-    <section class="assistant-chat" id="assistantChatLog">
-      ${assistantMessages.map(AssistantBubble).join("")}
+    <section class="assistant-page-shell">
+      <header class="assistant-hero-header">
+        <div>
+          <p>AI 助手</p>
+          <h1>一句话说明情况，我帮你判断是求助还是帮助。</h1>
+          <span>比如取快递、接孩子、借工具，先聊清楚，再决定要不要发到发现页。</span>
+        </div>
+        <button type="button" data-action="open-ai-compose">发布</button>
+      </header>
+      <section class="assistant-example-row" aria-label="AI 助手示例">
+        <button type="button" data-assistant-example="我今天去中通快递站，有没有邻居要带快递的">我去快递站，可帮邻居带件</button>
+        <button type="button" data-assistant-example="我今天加班，没时间接孩子，有没有邻居下午6点帮忙接一下">我需要邻居帮忙接孩子</button>
+        <button type="button" data-assistant-example="谁有小推车可以借我搬两箱东西，半小时后还">我想借个工具</button>
+      </section>
+      <section class="assistant-chat" id="assistantChatLog">
+        ${assistantMessages.map(AssistantBubble).join("")}
+      </section>
+      <section class="assistant-suggestions" id="assistantSuggestions">
+        ${pendingAssistantPost ? AssistantPublishCard(pendingAssistantPost) : ""}
+        ${assistantHelpers.map(AssistantHelperCard).join("")}
+        ${assistantSuggestions.map(AssistantHelpCard).join("")}
+        ${!pendingAssistantPost && !assistantHelpers.length && !assistantSuggestions.length ? AssistantEmptyState() : ""}
+      </section>
+      <section class="assistant-composer">
+        <input id="assistantInput" type="text" placeholder="例如：我今天去菜鸟驿站" />
+        <button type="button" class="primary-action" id="assistantSend">发送</button>
+      </section>
     </section>
-    <section class="assistant-suggestions" id="assistantSuggestions">
-      ${pendingAssistantPost ? AssistantPublishCard(pendingAssistantPost) : ""}
-      ${assistantHelpers.map(AssistantHelperCard).join("")}
-      ${assistantSuggestions.map(AssistantHelpCard).join("")}
-    </section>
-    <section class="assistant-composer">
-      <input id="assistantInput" type="text" placeholder="例如：我今天去菜鸟驿站" />
-      <button type="button" class="primary-action" id="assistantSend">发送</button>
-    </section>
+  `;
+}
+
+function AssistantEmptyState() {
+  return `
+    <article class="assistant-empty-card">
+      <strong>我会先理解你的意图</strong>
+      <p>你是想请邻居帮忙，还是你正好可以帮别人？说自然一点就行，我会帮你整理成帖子。</p>
+    </article>
   `;
 }
 
@@ -864,6 +896,14 @@ function bindEvents() {
     }
     if (button.id === "assistantSend") sendAssistantMessage($("#assistantInput").value);
     if (button.id === "privateChatSend") sendPrivateChat();
+
+    if (button.dataset.assistantExample) {
+      const input = $("#assistantInput");
+      if (input) {
+        input.value = button.dataset.assistantExample;
+        input.focus();
+      }
+    }
 
     const quickId = button.dataset.quickId;
     if (quickId) {
