@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>邻里帮 Agent Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Demo navigation">
+        <div class="brand">
+          <div class="brand-mark">邻</div>
+          <div>
+            <p class="eyebrow">Neighborhood Task Network</p>
+            <h1>邻里帮 Agent</h1>
+          </div>
+        </div>
+
+        <nav class="nav-stack" aria-label="主要模块">
+          <button class="nav-item active" data-view="resident">
+            <span>居民端</span>
+            <small>一句话发需求</small>
+          </button>
+          <button class="nav-item" data-view="tools">
+            <span>工具银行</span>
+            <small>借用与归还</small>
+          </button>
+          <button class="nav-item" data-view="orders">
+            <span>我的订单</span>
+            <small>状态流转</small>
+          </button>
+        </nav>
+
+        <div class="pilot-card">
+          <span class="status-dot"></span>
+          <div>
+            <strong>梧桐里小区试点</strong>
+            <p>已导入 12 位种子服务者、8 件公共工具、3 条风险规则。</p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="topbar">
+          <div>
+            <p class="eyebrow">Day 1 + Day 2 Demo</p>
+            <h2>把一句话推进成可信工单</h2>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost-button" id="seedRunTask">填入跑腿示例</button>
+            <button class="ghost-button" id="seedToolTask">填入借工具示例</button>
+          </div>
+        </section>
+
+        <section class="view active" id="view-resident">
+          <div class="compose-layout">
+            <section class="composer-panel">
+              <div class="section-title">
+                <span class="step-pill">01</span>
+                <div>
+                  <h3>一句话发布</h3>
+                  <p>Agent 只追问会影响匹配、价格、风险或履约的缺失信息。</p>
+                </div>
+              </div>
+
+              <label class="field-label" for="requestText">需求描述</label>
+              <textarea id="requestText" rows="5">今晚 7 点前帮我从小区门口取个快递，送到 3 栋楼下，10 元以内。</textarea>
+
+              <div class="quick-grid">
+                <button class="quick-chip" data-template="今晚 7 点前帮我从小区门口取个快递，送到 3 栋楼下，10 元以内。">代取快递</button>
+                <button class="quick-chip" data-template="今晚 8 点想借电钻挂画，半小时后还，最好同楼栋。">借电钻</button>
+                <button class="quick-chip" data-template="明天上午想找人帮我把两个收纳箱搬到 5 栋门口，预算 20 元。">小型搬运</button>
+              </div>
+
+              <button class="primary-button" id="parseTaskButton">解析成任务卡</button>
+            </section>
+
+            <section class="agent-panel" aria-live="polite">
+              <div class="section-title">
+                <span class="step-pill">02</span>
+                <div>
+                  <h3>Agent 工具调用</h3>
+                  <p>展示 parse_task、rank_workers、suggest_price、create_order 的结果。</p>
+                </div>
+              </div>
+              <div id="agentLog" class="agent-log empty-state">等待用户发布需求。</div>
+            </section>
+          </div>
+
+          <div class="task-grid">
+            <section class="task-card-panel" id="taskCardPanel">
+              <div class="empty-state tall">解析后会在这里生成任务卡。</div>
+            </section>
+
+            <section class="match-panel">
+              <div class="section-title compact">
+                <span class="step-pill">03</span>
+                <div>
+                  <h3>候选人与议价</h3>
+                  <p>按距离、认证、报价、信用、响应速度排序。</p>
+                </div>
+              </div>
+              <div id="matchList" class="match-list empty-state">暂无候选人。</div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="view-tools">
+          <div class="split-header">
+            <div>
+              <p class="eyebrow">Tool Bank</p>
+              <h3>工具银行</h3>
+              <p>工具发布、借用申请、取还确认、到期提醒。</p>
+            </div>
+            <button class="primary-button" id="openToolRequest">发起电钻借用</button>
+          </div>
+          <div id="toolGrid" class="tool-grid"></div>
+        </section>
+
+        <section class="view" id="view-orders">
+          <div class="split-header">
+            <div>
+              <p class="eyebrow">Fulfillment</p>
+              <h3>订单状态流转</h3>
+              <p>从待确认到已完成，保留报价、凭证、超时与争议入口。</p>
+            </div>
+            <button class="ghost-button" id="simulateTimeout">模拟超时异常</button>
+          </div>
+
+          <div id="orderBoard" class="order-board empty-state tall">还没有创建订单。</div>
+        </section>
+      </main>
+    </div>
+
+    <template id="logItemTemplate">
+      <div class="log-item">
+        <span></span>
+        <p></p>
+      </div>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
