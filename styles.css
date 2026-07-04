@@ -412,11 +412,49 @@ h3 {
 }
 
 .voice-button {
-  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 139, 104, 0.3);
   border-radius: 8px;
-  background: #fff1bf;
-  color: var(--ink);
+  background: linear-gradient(145deg, #fff7d7, #ffe9df);
+  color: #7b3b22;
   font-weight: 900;
+  box-shadow: 0 10px 22px rgba(255, 139, 104, 0.1);
+}
+
+.voice-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.voice-button.recording {
+  border-color: rgba(242, 91, 128, 0.42);
+  background: linear-gradient(145deg, #ff8c7a, #f25b80);
+  color: #fffdfc;
+  box-shadow: 0 0 0 5px rgba(242, 91, 128, 0.12);
+}
+
+.desktop-voice-status {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 139, 104, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 248, 232, 0.94);
+  color: #7b3b22;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.desktop-voice-status.listening {
+  background: #fff1bf;
+  color: #8c3c2b;
 }
 
 .desktop-chat-composer input,

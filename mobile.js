@@ -33,9 +33,9 @@ const communityPosts = data.discoverCards.map((item, index) => ({
 let messageMode = "all";
 let activeChatId = null;
 const chats = {};
-let voiceRecorder = null;
-let voiceChunks = [];
+let voiceRecognition = null;
 let isRecordingVoice = false;
+let voiceStatusText = "";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -46,6 +46,7 @@ function icon(name) {
     search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>',
     chevron: '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>',
     arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
+    mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/><path d="M8 22h8"/></svg>',
   };
   return icons[name] || "";
 }
@@ -597,8 +598,12 @@ function renderAssistant() {
           <section class="assistant-chat" id="assistantChatLog">
             ${assistantMessages.map(AssistantBubble).join("")}
           </section>
+          ${voiceStatusText ? `<p class="voice-status ${isRecordingVoice ? "listening" : ""}">${voiceStatusText}</p>` : ""}
           <section class="assistant-composer">
-            <button type="button" class="voice-action ${isRecordingVoice ? "recording" : ""}" id="assistantVoice" aria-label="语音输入">${isRecordingVoice ? "停" : "说"}</button>
+            <button type="button" class="voice-action ${isRecordingVoice ? "recording" : ""}" id="assistantVoice" aria-label="${isRecordingVoice ? "&#20572;&#27490;&#35821;&#38899;&#36755;&#20837;" : "&#35821;&#38899;&#36755;&#20837;"}" title="${isRecordingVoice ? "&#20572;&#27490;&#35821;&#38899;&#36755;&#20837;" : "&#35821;&#38899;&#36755;&#20837;"}">
+              ${icon("mic")}
+              <span>${isRecordingVoice ? "&#21548;&#21462;&#20013;" : "&#35821;&#38899;"}</span>
+            </button>
             <input id="assistantInput" type="text" placeholder="例如：我今天去菜鸟驿站" />
             <button type="button" class="primary-action" id="assistantSend">发送</button>
           </section>
@@ -768,68 +773,67 @@ async function sendAssistantMessage(message) {
   renderAssistant();
 }
 
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(String(reader.result || "")));
-    reader.addEventListener("error", reject);
-    reader.readAsDataURL(blob);
-  });
-}
-
-async function sendAssistantVoice(blob) {
-  assistantMessages.push({ role: "assistant", text: "正在把语音转成文字..." });
-  renderAssistant();
-  try {
-    const audioBase64 = await blobToDataUrl(blob);
-    const response = await fetch("/api/assistant/voice", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ audioBase64, mimeType: blob.type || "audio/webm", filename: "assistant-voice.webm" }),
-    });
-    const result = await response.json();
-    assistantMessages.pop();
-    if (!response.ok) throw new Error(result.message || "语音识别失败");
-    assistantMessages.push({ role: "user", text: result.transcript });
-    const targetText = result.intent?.type === "help_request" ? "下面是可能能帮忙的邻居" : "下面是可能顺路匹配的求助";
-    assistantMessages.push({ role: "assistant", text: `${result.reply || "我整理好了。"} ${targetText}。要不要我帮你发一条帖子，让邻居在发现里看到？` });
-    assistantSuggestions = result.nearbyRequests || [];
-    assistantHelpers = result.nearbyHelpers || [];
-    pendingAssistantPost = buildPostFromAssistant(result, result.transcript);
-  } catch (error) {
-    assistantMessages.pop();
-    assistantMessages.push({ role: "assistant", text: `语音没有识别成功，可以再试一次，或直接打字发送。${error.message || ""}`.trim() });
-  }
-  renderAssistant();
-}
-
 async function toggleAssistantVoice() {
-  if (isRecordingVoice && voiceRecorder) {
-    voiceRecorder.stop();
-    return;
-  }
-  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-    window.alert("当前浏览器不支持语音输入，请改用文字发送。");
-    return;
-  }
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  voiceChunks = [];
-  voiceRecorder = new MediaRecorder(stream);
-  voiceRecorder.addEventListener("dataavailable", (event) => {
-    if (event.data.size) voiceChunks.push(event.data);
-  });
-  voiceRecorder.addEventListener("stop", () => {
-    stream.getTracks().forEach((track) => track.stop());
-    isRecordingVoice = false;
-    const blob = new Blob(voiceChunks, { type: voiceRecorder.mimeType || "audio/webm" });
-    voiceRecorder = null;
-    voiceChunks = [];
+  if (isRecordingVoice && voiceRecognition) {
+    voiceStatusText = "\u6b63\u5728\u6574\u7406\u521a\u624d\u542c\u5230\u7684\u5185\u5bb9...";
+    voiceRecognition.stop();
     renderAssistant();
-    if (blob.size) sendAssistantVoice(blob);
+    return;
+  }
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition) {
+    voiceStatusText = "\u5f53\u524d\u6d4f\u89c8\u5668\u6682\u4e0d\u652f\u6301\u8bed\u97f3\u8f93\u5165";
+    assistantMessages.push({ role: "assistant", text: "\u5f53\u524d\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5185\u7f6e\u8bed\u97f3\u8bc6\u522b\uff0c\u8bf7\u7528 Chrome \u6216 Edge \u6253\u5f00\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002" });
+    renderAssistant();
+    return;
+  }
+  voiceRecognition = new Recognition();
+  voiceRecognition.lang = "zh-CN";
+  voiceRecognition.interimResults = false;
+  voiceRecognition.continuous = false;
+  voiceRecognition.addEventListener("start", () => {
+    isRecordingVoice = true;
+    voiceStatusText = "\u6b63\u5728\u542c\u4f60\u8bf4\u8bdd...";
+    renderAssistant();
   });
-  isRecordingVoice = true;
-  voiceRecorder.start();
-  renderAssistant();
+  voiceRecognition.addEventListener("result", (event) => {
+    const transcript = Array.from(event.results)
+      .map((result) => result[0]?.transcript || "")
+      .join("")
+      .trim();
+    if (transcript) {
+      voiceStatusText = "\u5df2\u8bc6\u522b\uff1a" + transcript;
+      sendAssistantMessage(transcript);
+    }
+  });
+  voiceRecognition.addEventListener("error", (event) => {
+    const message = event.error === "not-allowed"
+      ? "\u6d4f\u89c8\u5668\u6ca1\u6709\u62ff\u5230\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u8bf7\u5141\u8bb8\u9ea6\u514b\u98ce\u540e\u518d\u8bd5\u3002"
+      : "\u8bed\u97f3\u6ca1\u6709\u8bc6\u522b\u6210\u529f\uff0c\u53ef\u4ee5\u518d\u8bd5\u4e00\u6b21\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002";
+    assistantMessages.push({ role: "assistant", text: message });
+    voiceStatusText = "\u8bed\u97f3\u8f93\u5165\u5df2\u7ed3\u675f";
+    isRecordingVoice = false;
+    voiceRecognition = null;
+    renderAssistant();
+  });
+  voiceRecognition.addEventListener("end", () => {
+    isRecordingVoice = false;
+    voiceRecognition = null;
+    if (voiceStatusText === "\u6b63\u5728\u542c\u4f60\u8bf4\u8bdd...") voiceStatusText = "\u6ca1\u6709\u542c\u6e05\uff0c\u53ef\u4ee5\u518d\u70b9\u4e00\u6b21\u8bed\u97f3";
+    renderAssistant();
+  });
+  try {
+    voiceStatusText = "\u6b63\u5728\u5524\u8d77\u9ea6\u514b\u98ce...";
+    isRecordingVoice = true;
+    renderAssistant();
+    voiceRecognition.start();
+  } catch {
+    voiceStatusText = "\u8bed\u97f3\u8f93\u5165\u542f\u52a8\u5931\u8d25";
+    assistantMessages.push({ role: "assistant", text: "\u8bed\u97f3\u8f93\u5165\u6ca1\u6709\u542f\u52a8\u6210\u529f\uff0c\u8bf7\u786e\u8ba4\u6d4f\u89c8\u5668\u5141\u8bb8\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002" });
+    isRecordingVoice = false;
+    voiceRecognition = null;
+    renderAssistant();
+  }
 }
 
 function publishAssistantPost() {

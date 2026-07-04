@@ -120,9 +120,9 @@ let desktopPendingPost = null;
 let desktopDiscoverMode = "hot";
 let desktopDiscoverCategory = "ask";
 let desktopDiscoverSearch = "";
-let desktopVoiceRecorder = null;
-let desktopVoiceChunks = [];
+let desktopVoiceRecognition = null;
 let desktopVoiceRecording = false;
+let desktopVoiceStatusText = "";
 const desktopPosts = [
   { id: "seed-1", title: "傍晚散步局", text: "今天 19:30，梧桐步道慢走 30 分钟。", count: "5人感兴趣", author: "阿树", time: "刚刚", heat: 88, category: "offer" },
   { id: "seed-2", title: "共享工具角", text: "小推车、折叠梯、打气筒今天可借。", count: "4件可用", author: "物业工具柜", time: "1小时前", heat: 76, category: "offer" },
@@ -327,9 +327,23 @@ function renderDesktopAssistant() {
     .map((message) => `<div class="desktop-chat-bubble ${message.role}"><p>${message.text}</p></div>`)
     .join("");
   suggestions.innerHTML = `
+    ${desktopVoiceStatusText ? `<p class="desktop-voice-status ${desktopVoiceRecording ? "listening" : ""}">${desktopVoiceStatusText}</p>` : ""}
     ${desktopPendingPost ? renderDesktopPublishCard(desktopPendingPost) : ""}
     ${desktopAssistantHelpers.map(renderDesktopHelperCard).join("")}
     ${desktopAssistantSuggestions.map(renderDesktopHelpCard).join("")}
+  `;
+  updateDesktopVoiceButton();
+}
+
+function updateDesktopVoiceButton() {
+  const button = $("#desktopAssistantVoice");
+  if (!button) return;
+  button.classList.toggle("recording", desktopVoiceRecording);
+  button.setAttribute("aria-label", desktopVoiceRecording ? "停止语音输入" : "语音输入");
+  button.setAttribute("title", desktopVoiceRecording ? "停止语音输入" : "语音输入");
+  button.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/><path d="M8 22h8"/></svg>
+    <span>${desktopVoiceRecording ? "听取中" : "语音"}</span>
   `;
 }
 
@@ -466,69 +480,69 @@ async function sendDesktopAssistantMessage() {
   renderDesktopAssistant();
 }
 
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(String(reader.result || "")));
-    reader.addEventListener("error", reject);
-    reader.readAsDataURL(blob);
-  });
-}
-
-async function sendDesktopAssistantVoice(blob) {
-  desktopAssistantMessages.push({ role: "assistant", text: "正在把语音转成文字..." });
-  renderDesktopAssistant();
-  try {
-    const audioBase64 = await blobToDataUrl(blob);
-    const response = await fetch("/api/assistant/voice", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ audioBase64, mimeType: blob.type || "audio/webm", filename: "assistant-voice.webm" }),
-    });
-    const result = await response.json();
-    desktopAssistantMessages.pop();
-    if (!response.ok) throw new Error(result.message || "语音识别失败");
-    desktopAssistantMessages.push({ role: "user", text: result.transcript });
-    desktopAssistantMessages.push({ role: "assistant", text: `${result.reply || "我整理好了。"} 要不要我帮你发一条帖子？` });
-    desktopAssistantSuggestions = result.nearbyRequests || [];
-    desktopAssistantHelpers = result.nearbyHelpers || [];
-    desktopPendingPost = buildDesktopPost(result, result.transcript);
-  } catch (error) {
-    desktopAssistantMessages.pop();
-    desktopAssistantMessages.push({ role: "assistant", text: `语音没有识别成功，可以再试一次，或直接打字发送。${error.message || ""}`.trim() });
-  }
-  renderDesktopAssistant();
-}
-
 async function toggleDesktopAssistantVoice() {
-  if (desktopVoiceRecording && desktopVoiceRecorder) {
-    desktopVoiceRecorder.stop();
+  if (desktopVoiceRecording && desktopVoiceRecognition) {
+    desktopVoiceStatusText = "\u6b63\u5728\u6574\u7406\u521a\u624d\u542c\u5230\u7684\u5185\u5bb9...";
+    desktopVoiceRecognition.stop();
+    renderDesktopAssistant();
     return;
   }
-  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-    window.alert("当前浏览器不支持语音输入，请改用文字发送。");
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition) {
+    desktopVoiceStatusText = "\u5f53\u524d\u6d4f\u89c8\u5668\u6682\u4e0d\u652f\u6301\u8bed\u97f3\u8f93\u5165";
+    desktopAssistantMessages.push({ role: "assistant", text: "\u5f53\u524d\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5185\u7f6e\u8bed\u97f3\u8bc6\u522b\uff0c\u8bf7\u7528 Chrome \u6216 Edge \u6253\u5f00\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002" });
+    renderDesktopAssistant();
     return;
   }
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  desktopVoiceChunks = [];
-  desktopVoiceRecorder = new MediaRecorder(stream);
-  desktopVoiceRecorder.addEventListener("dataavailable", (event) => {
-    if (event.data.size) desktopVoiceChunks.push(event.data);
+  desktopVoiceRecognition = new Recognition();
+  desktopVoiceRecognition.lang = "zh-CN";
+  desktopVoiceRecognition.interimResults = false;
+  desktopVoiceRecognition.continuous = false;
+  desktopVoiceRecognition.addEventListener("start", () => {
+    desktopVoiceRecording = true;
+    desktopVoiceStatusText = "\u6b63\u5728\u542c\u4f60\u8bf4\u8bdd...";
+    renderDesktopAssistant();
   });
-  desktopVoiceRecorder.addEventListener("stop", () => {
-    stream.getTracks().forEach((track) => track.stop());
+  desktopVoiceRecognition.addEventListener("result", (event) => {
+    const transcript = Array.from(event.results)
+      .map((result) => result[0]?.transcript || "")
+      .join("")
+      .trim();
+    if (transcript) {
+      desktopVoiceStatusText = "\u5df2\u8bc6\u522b\uff1a" + transcript;
+      const input = $("#desktopAssistantInput");
+      if (input) input.value = transcript;
+      sendDesktopAssistantMessage();
+    }
+  });
+  desktopVoiceRecognition.addEventListener("error", (event) => {
+    const message = event.error === "not-allowed"
+      ? "\u6d4f\u89c8\u5668\u6ca1\u6709\u62ff\u5230\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u8bf7\u5141\u8bb8\u9ea6\u514b\u98ce\u540e\u518d\u8bd5\u3002"
+      : "\u8bed\u97f3\u6ca1\u6709\u8bc6\u522b\u6210\u529f\uff0c\u53ef\u4ee5\u518d\u8bd5\u4e00\u6b21\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002";
+    desktopAssistantMessages.push({ role: "assistant", text: message });
+    desktopVoiceStatusText = "\u8bed\u97f3\u8f93\u5165\u5df2\u7ed3\u675f";
     desktopVoiceRecording = false;
-    const blob = new Blob(desktopVoiceChunks, { type: desktopVoiceRecorder.mimeType || "audio/webm" });
-    desktopVoiceRecorder = null;
-    desktopVoiceChunks = [];
-    const button = $("#desktopAssistantVoice");
-    if (button) button.textContent = "语音";
-    if (blob.size) sendDesktopAssistantVoice(blob);
+    desktopVoiceRecognition = null;
+    renderDesktopAssistant();
   });
-  desktopVoiceRecording = true;
-  const button = $("#desktopAssistantVoice");
-  if (button) button.textContent = "停止";
-  desktopVoiceRecorder.start();
+  desktopVoiceRecognition.addEventListener("end", () => {
+    desktopVoiceRecording = false;
+    desktopVoiceRecognition = null;
+    if (desktopVoiceStatusText === "\u6b63\u5728\u542c\u4f60\u8bf4\u8bdd...") desktopVoiceStatusText = "\u6ca1\u6709\u542c\u6e05\uff0c\u53ef\u4ee5\u518d\u70b9\u4e00\u6b21\u8bed\u97f3";
+    updateDesktopVoiceButton();
+  });
+  try {
+    desktopVoiceStatusText = "\u6b63\u5728\u5524\u8d77\u9ea6\u514b\u98ce...";
+    desktopVoiceRecording = true;
+    renderDesktopAssistant();
+    desktopVoiceRecognition.start();
+  } catch {
+    desktopVoiceStatusText = "\u8bed\u97f3\u8f93\u5165\u542f\u52a8\u5931\u8d25";
+    desktopAssistantMessages.push({ role: "assistant", text: "\u8bed\u97f3\u8f93\u5165\u6ca1\u6709\u542f\u52a8\u6210\u529f\uff0c\u8bf7\u786e\u8ba4\u6d4f\u89c8\u5668\u5141\u8bb8\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u6216\u76f4\u63a5\u6253\u5b57\u53d1\u9001\u3002" });
+    desktopVoiceRecording = false;
+    desktopVoiceRecognition = null;
+    renderDesktopAssistant();
+  }
 }
 
 function getDesktopDiscoverPosts() {
