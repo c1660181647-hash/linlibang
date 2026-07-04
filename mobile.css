@@ -149,7 +149,7 @@ svg {
   left: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   align-items: end;
   width: min(calc(100% - 32px), 428px);
   min-height: 72px;
