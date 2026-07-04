@@ -65,7 +65,7 @@ function readCollection(store, key) {
   return store.read()[key];
 }
 
-function routeApi(method, pathname, body, store) {
+async function routeApi(method, pathname, body, store, env = process.env) {
   if (method === "GET" && pathname === "/health") return { status: 200, body: { status: "ok" } };
   if (method === "GET" && pathname === "/ready") {
     const ready = store.check();
@@ -76,6 +76,7 @@ function routeApi(method, pathname, body, store) {
   if (method === "GET" && pathname === "/api/tools") return { status: 200, body: { tools: readCollection(store, "tools") } };
   if (method === "GET" && pathname === "/api/orders") return { status: 200, body: { orders: readCollection(store, "orders") } };
   if (method === "GET" && pathname === "/api/community/feed") return { status: 200, body: { posts: readCollection(store, "feed") } };
+  if (method === "POST" && pathname === "/api/assistant/chat") return { status: 200, body: await service.assistantChat(store, body, env) };
   if (method === "POST" && pathname === "/api/tasks/parse") return { status: 200, body: service.parseAndMatch(store, body.text) };
   if (method === "POST" && pathname === "/api/orders") return { status: 201, body: { order: service.createOrder(store, body) } };
 
@@ -142,6 +143,7 @@ function createApp(options = {}) {
     port: options.port || 3001,
   };
   const store = new JsonStore(config.dataFile, seedNeighborhood);
+  const env = options.env || process.env;
 
   const server = http.createServer(async (req, res) => {
     const requestId = req.headers["x-request-id"] || crypto.randomUUID();
@@ -157,7 +159,7 @@ function createApp(options = {}) {
     try {
       const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
       const body = await parseBody(req);
-      const apiResult = routeApi(req.method, url.pathname, body, store);
+      const apiResult = await routeApi(req.method, url.pathname, body, store, env);
       if (apiResult) {
         sendJson(res, apiResult.status, apiResult.body, requestId);
       } else {

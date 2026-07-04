@@ -145,7 +145,7 @@ svg {
   left: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   align-items: end;
   width: min(calc(100% - 32px), 428px);
   min-height: 72px;
@@ -191,6 +191,23 @@ svg {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.9;
+}
+
+.ai-tab-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: currentColor;
+  color: var(--bg-surface);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.bottom-tabs button.active .ai-tab-icon {
+  background: var(--text-primary);
+  color: #fffdfc;
 }
 
 .bottom-tabs strong {
@@ -412,6 +429,32 @@ textarea {
   color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
+}
+
+.compose-mode,
+.compose-type {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--bg-soft);
+}
+
+.compose-mode button,
+.compose-type button {
+  min-height: 38px;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.compose-mode button.active,
+.compose-type button.active {
+  background: var(--text-primary);
+  color: #fffdfc;
 }
 
 .primary-action,
