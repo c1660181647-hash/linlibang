@@ -120,6 +120,9 @@ let desktopPendingPost = null;
 let desktopDiscoverMode = "hot";
 let desktopDiscoverCategory = "ask";
 let desktopDiscoverSearch = "";
+let desktopVoiceRecorder = null;
+let desktopVoiceChunks = [];
+let desktopVoiceRecording = false;
 const desktopPosts = [
   { id: "seed-1", title: "傍晚散步局", text: "今天 19:30，梧桐步道慢走 30 分钟。", count: "5人感兴趣", author: "阿树", time: "刚刚", heat: 88, category: "offer" },
   { id: "seed-2", title: "共享工具角", text: "小推车、折叠梯、打气筒今天可借。", count: "4件可用", author: "物业工具柜", time: "1小时前", heat: 76, category: "offer" },
@@ -463,6 +466,71 @@ async function sendDesktopAssistantMessage() {
   renderDesktopAssistant();
 }
 
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result || "")));
+    reader.addEventListener("error", reject);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function sendDesktopAssistantVoice(blob) {
+  desktopAssistantMessages.push({ role: "assistant", text: "正在把语音转成文字..." });
+  renderDesktopAssistant();
+  try {
+    const audioBase64 = await blobToDataUrl(blob);
+    const response = await fetch("/api/assistant/voice", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ audioBase64, mimeType: blob.type || "audio/webm", filename: "assistant-voice.webm" }),
+    });
+    const result = await response.json();
+    desktopAssistantMessages.pop();
+    if (!response.ok) throw new Error(result.message || "语音识别失败");
+    desktopAssistantMessages.push({ role: "user", text: result.transcript });
+    desktopAssistantMessages.push({ role: "assistant", text: `${result.reply || "我整理好了。"} 要不要我帮你发一条帖子？` });
+    desktopAssistantSuggestions = result.nearbyRequests || [];
+    desktopAssistantHelpers = result.nearbyHelpers || [];
+    desktopPendingPost = buildDesktopPost(result, result.transcript);
+  } catch (error) {
+    desktopAssistantMessages.pop();
+    desktopAssistantMessages.push({ role: "assistant", text: `语音没有识别成功，可以再试一次，或直接打字发送。${error.message || ""}`.trim() });
+  }
+  renderDesktopAssistant();
+}
+
+async function toggleDesktopAssistantVoice() {
+  if (desktopVoiceRecording && desktopVoiceRecorder) {
+    desktopVoiceRecorder.stop();
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    window.alert("当前浏览器不支持语音输入，请改用文字发送。");
+    return;
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  desktopVoiceChunks = [];
+  desktopVoiceRecorder = new MediaRecorder(stream);
+  desktopVoiceRecorder.addEventListener("dataavailable", (event) => {
+    if (event.data.size) desktopVoiceChunks.push(event.data);
+  });
+  desktopVoiceRecorder.addEventListener("stop", () => {
+    stream.getTracks().forEach((track) => track.stop());
+    desktopVoiceRecording = false;
+    const blob = new Blob(desktopVoiceChunks, { type: desktopVoiceRecorder.mimeType || "audio/webm" });
+    desktopVoiceRecorder = null;
+    desktopVoiceChunks = [];
+    const button = $("#desktopAssistantVoice");
+    if (button) button.textContent = "语音";
+    if (blob.size) sendDesktopAssistantVoice(blob);
+  });
+  desktopVoiceRecording = true;
+  const button = $("#desktopAssistantVoice");
+  if (button) button.textContent = "停止";
+  desktopVoiceRecorder.start();
+}
+
 function getDesktopDiscoverPosts() {
   const source = desktopPosts.filter((item) => item.category === desktopDiscoverCategory);
   if (desktopDiscoverMode === "latest") return [...source].sort((a, b) => Number(b.id.startsWith("post-")) - Number(a.id.startsWith("post-")) || b.heat - a.heat);
@@ -770,6 +838,7 @@ function initEvents() {
   $("#assistantParse").addEventListener("click", parseAndRender);
   $("#assistantPolish").addEventListener("click", polishRequestText);
   $("#desktopAssistantSend").addEventListener("click", sendDesktopAssistantMessage);
+  $("#desktopAssistantVoice").addEventListener("click", toggleDesktopAssistantVoice);
   $("#desktopAssistantInput").addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
     event.preventDefault();

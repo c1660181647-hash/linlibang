@@ -886,7 +886,7 @@
   left: 0;
   z-index: 18;
   display: grid;
-  grid-template-columns: 1fr 82px;
+  grid-template-columns: 48px 1fr 82px;
   gap: 9px;
   width: min(calc(100% - 32px), 428px);
   margin: 0 auto;
@@ -895,6 +895,21 @@
   background: rgba(255, 253, 252, 0.94);
   box-shadow: var(--shadow-floating);
   backdrop-filter: blur(16px);
+}
+
+.voice-action {
+  min-height: 44px;
+  border-radius: 16px;
+  background: #fff1bf;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.voice-action.recording {
+  background: linear-gradient(145deg, #ff8c7a, #f25b80);
+  color: #fffdfc;
+  box-shadow: 0 0 0 6px rgba(242, 91, 128, 0.14);
 }
 
 .assistant-composer input {

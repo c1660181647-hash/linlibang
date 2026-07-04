@@ -33,6 +33,9 @@ const communityPosts = data.discoverCards.map((item, index) => ({
 let messageMode = "all";
 let activeChatId = null;
 const chats = {};
+let voiceRecorder = null;
+let voiceChunks = [];
+let isRecordingVoice = false;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -595,6 +598,7 @@ function renderAssistant() {
             ${assistantMessages.map(AssistantBubble).join("")}
           </section>
           <section class="assistant-composer">
+            <button type="button" class="voice-action ${isRecordingVoice ? "recording" : ""}" id="assistantVoice" aria-label="语音输入">${isRecordingVoice ? "停" : "说"}</button>
             <input id="assistantInput" type="text" placeholder="例如：我今天去菜鸟驿站" />
             <button type="button" class="primary-action" id="assistantSend">发送</button>
           </section>
@@ -764,6 +768,70 @@ async function sendAssistantMessage(message) {
   renderAssistant();
 }
 
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result || "")));
+    reader.addEventListener("error", reject);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function sendAssistantVoice(blob) {
+  assistantMessages.push({ role: "assistant", text: "正在把语音转成文字..." });
+  renderAssistant();
+  try {
+    const audioBase64 = await blobToDataUrl(blob);
+    const response = await fetch("/api/assistant/voice", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ audioBase64, mimeType: blob.type || "audio/webm", filename: "assistant-voice.webm" }),
+    });
+    const result = await response.json();
+    assistantMessages.pop();
+    if (!response.ok) throw new Error(result.message || "语音识别失败");
+    assistantMessages.push({ role: "user", text: result.transcript });
+    const targetText = result.intent?.type === "help_request" ? "下面是可能能帮忙的邻居" : "下面是可能顺路匹配的求助";
+    assistantMessages.push({ role: "assistant", text: `${result.reply || "我整理好了。"} ${targetText}。要不要我帮你发一条帖子，让邻居在发现里看到？` });
+    assistantSuggestions = result.nearbyRequests || [];
+    assistantHelpers = result.nearbyHelpers || [];
+    pendingAssistantPost = buildPostFromAssistant(result, result.transcript);
+  } catch (error) {
+    assistantMessages.pop();
+    assistantMessages.push({ role: "assistant", text: `语音没有识别成功，可以再试一次，或直接打字发送。${error.message || ""}`.trim() });
+  }
+  renderAssistant();
+}
+
+async function toggleAssistantVoice() {
+  if (isRecordingVoice && voiceRecorder) {
+    voiceRecorder.stop();
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    window.alert("当前浏览器不支持语音输入，请改用文字发送。");
+    return;
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  voiceChunks = [];
+  voiceRecorder = new MediaRecorder(stream);
+  voiceRecorder.addEventListener("dataavailable", (event) => {
+    if (event.data.size) voiceChunks.push(event.data);
+  });
+  voiceRecorder.addEventListener("stop", () => {
+    stream.getTracks().forEach((track) => track.stop());
+    isRecordingVoice = false;
+    const blob = new Blob(voiceChunks, { type: voiceRecorder.mimeType || "audio/webm" });
+    voiceRecorder = null;
+    voiceChunks = [];
+    renderAssistant();
+    if (blob.size) sendAssistantVoice(blob);
+  });
+  isRecordingVoice = true;
+  voiceRecorder.start();
+  renderAssistant();
+}
+
 function publishAssistantPost() {
   if (!pendingAssistantPost) return;
   const postCategory = pendingAssistantPost.category || "ask";
@@ -899,6 +967,7 @@ function bindEvents() {
       }
     }
     if (button.id === "assistantSend") sendAssistantMessage($("#assistantInput").value);
+    if (button.id === "assistantVoice") toggleAssistantVoice();
     if (button.id === "privateChatSend") sendPrivateChat();
 
     if (button.dataset.assistantExample) {
