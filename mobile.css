@@ -374,7 +374,7 @@ textarea {
 
 .post-detail-actions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -395,6 +395,72 @@ textarea {
 .post-detail-actions button.reported {
   background: #f3ebe2;
   color: var(--text-secondary);
+}
+
+.post-status-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.post-status-badge.open {
+  background: #fff1bf;
+  color: #80651c;
+}
+
+.post-status-badge.solved {
+  background: #ddf2d7;
+  color: #5f7e52;
+}
+
+.post-status-badge.expired {
+  background: #f3ebe2;
+  color: var(--text-secondary);
+}
+
+.post-ai-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff8ea;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.post-status-controls {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--bg-soft);
+}
+
+.post-status-controls strong {
+  font-size: 14px;
+}
+
+.post-status-controls div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.post-status-controls button {
+  min-height: 36px;
+  border-radius: 999px;
+  background: #fffdfc;
+  color: var(--text-secondary);
+  font-weight: 800;
+}
+
+.post-status-controls button.active {
+  background: linear-gradient(145deg, #ffca45, #ff9f87);
+  color: #fffdfc;
 }
 
 .post-report-box {
@@ -660,6 +726,10 @@ textarea {
 }
 
 @media (max-width: 380px) {
+  .post-detail-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .phone-app {
     padding-inline: 12px;
   }

@@ -127,6 +127,7 @@ let desktopVoicePressing = false;
 let desktopVoiceStopRequested = false;
 let activeDesktopPostId = null;
 const desktopReportUrgencyOptions = ["一般", "紧急", "非常紧急"];
+const desktopPostStatusOptions = ["未解决", "已解决", "已过期"];
 function desktopCategoryLabel(category) {
   if (category === "offer") return "\u5e2e\u52a9";
   if (category === "chat") return "\u90bb\u53cb\u5708";
@@ -630,7 +631,26 @@ function ensureDesktopPostInteractions(post) {
   post.favorited = Boolean(post.favorited);
   post.reported = Boolean(post.reported);
   post.showReportForm = Boolean(post.showReportForm);
+  post.status = post.status || "未解决";
+  post.aiChecked = Boolean(post.aiChecked);
   return post;
+}
+
+function desktopPostStatusClass(status) {
+  if (status === "已解决") return "solved";
+  if (status === "已过期") return "expired";
+  return "open";
+}
+
+function renderDesktopPostStatusControls(post) {
+  return `
+    <section class="desktop-post-status-controls" aria-label="设置帖子状态">
+      <strong>帖子状态</strong>
+      <div>
+        ${desktopPostStatusOptions.map((status) => `<button type="button" class="${post.status === status ? "active" : ""}" data-desktop-post-status="${status}">${status}</button>`).join("")}
+      </div>
+    </section>
+  `;
 }
 
 function renderDesktopPostPanel() {
@@ -644,6 +664,7 @@ function renderDesktopPostPanel() {
       <div>
         <p>${post.author} · ${post.time}</p>
         <h3>${post.title}</h3>
+        <span class="desktop-post-status-badge ${desktopPostStatusClass(post.status)}">${post.status}</span>
       </div>
       <button type="button" class="desktop-post-close" data-desktop-post-close aria-label="关闭帖子详情">×</button>
     </div>
@@ -651,8 +672,11 @@ function renderDesktopPostPanel() {
     <div class="desktop-post-actions">
       <button type="button" class="${post.liked ? "active" : ""}" data-desktop-post-action="like">点赞 ${post.likes}</button>
       <button type="button" class="${post.favorited ? "active" : ""}" data-desktop-post-action="favorite">收藏 ${post.favorites}</button>
+      <button type="button" class="${post.aiChecked ? "active" : ""}" data-desktop-post-action="ai-check">AI检查</button>
       <button type="button" class="${post.reported ? "reported" : ""}" data-desktop-post-action="report">${post.reported ? "已投诉" : "投诉"}</button>
     </div>
+    ${post.aiCheckReason ? `<p class="desktop-post-ai-note">${post.aiCheckReason}</p>` : ""}
+    ${renderDesktopPostStatusControls(post)}
     ${post.showReportForm ? renderDesktopPostReportForm(post) : ""}
     <section class="desktop-post-comments">
       <h4>评论</h4>
@@ -709,6 +733,10 @@ function closeDesktopPost() {
 function handleDesktopPostAction(action) {
   const post = activeDesktopPostId ? ensureDesktopPostInteractions(findDesktopPost(activeDesktopPostId)) : null;
   if (!post) return;
+  if (action === "ai-check") {
+    runDesktopPostAiCheck(post);
+    return;
+  }
   if (action === "like") {
     post.liked = !post.liked;
     post.likes += post.liked ? 1 : -1;
@@ -718,6 +746,36 @@ function handleDesktopPostAction(action) {
     post.favorites += post.favorited ? 1 : -1;
   }
   if (action === "report") post.showReportForm = true;
+  renderDesktopPostPanel();
+}
+
+async function runDesktopPostAiCheck(post) {
+  try {
+    const response = await fetch("/api/community/posts/check", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ post }),
+    });
+    const result = await response.json();
+    const check = result.check || result;
+    post.status = check.status || post.status || "未解决";
+    post.aiChecked = true;
+    post.aiCheckReason = check.reason || "AI 已完成帖子状态检查。";
+  } catch {
+    post.status = "未解决";
+    post.aiChecked = true;
+    post.aiCheckReason = "网络暂时不可用，已按本地规则完成检查。";
+  }
+  renderDesktopDiscover();
+  renderDesktopPostPanel();
+}
+
+function setDesktopPostStatus(status) {
+  const post = activeDesktopPostId ? ensureDesktopPostInteractions(findDesktopPost(activeDesktopPostId)) : null;
+  if (!post || !desktopPostStatusOptions.includes(status)) return;
+  post.status = status;
+  post.aiCheckReason = `状态已设置为${status}。`;
+  renderDesktopDiscover();
   renderDesktopPostPanel();
 }
 
@@ -771,7 +829,7 @@ function renderDesktopDiscover() {
                 <p>${post.author} · ${post.time}</p>
                 <h3>${post.title}</h3>
                 <span>${post.text}</span>
-                <strong>${desktopCategoryLabel(post.category)} · ${post.count}</strong>
+                <strong>${desktopCategoryLabel(post.category)} · ${post.count} · ${ensureDesktopPostInteractions(post).status}</strong>
               </div>
             </article>
           `
@@ -1089,6 +1147,8 @@ function initEvents() {
     if (event.target.closest("[data-desktop-post-close]")) closeDesktopPost();
     const actionButton = event.target.closest("[data-desktop-post-action]");
     if (actionButton) handleDesktopPostAction(actionButton.dataset.desktopPostAction);
+    const statusButton = event.target.closest("[data-desktop-post-status]");
+    if (statusButton) setDesktopPostStatus(statusButton.dataset.desktopPostStatus);
     if (event.target.closest("[data-desktop-post-report-submit]")) submitDesktopPostReport();
     if (event.target.closest("[data-desktop-post-report-cancel]")) cancelDesktopPostReport();
     if (event.target.closest("[data-desktop-post-comment]")) sendDesktopPostComment();

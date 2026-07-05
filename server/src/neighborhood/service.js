@@ -9,6 +9,42 @@ function requireText(value, field) {
   return value.trim();
 }
 
+function parseRelativePostAgeMinutes(timeText = "") {
+  if (/刚刚|刚才/.test(timeText)) return 0;
+  const minute = String(timeText).match(/(\d+)\s*分钟/);
+  if (minute) return Number(minute[1]);
+  const hour = String(timeText).match(/(\d+)\s*小时/);
+  if (hour) return Number(hour[1]) * 60;
+  const day = String(timeText).match(/(\d+)\s*天/);
+  if (day) return Number(day[1]) * 24 * 60;
+  return 0;
+}
+
+function inferPostStatus(post) {
+  const text = `${post?.title || ""}${post?.text || ""}${post?.status || ""}`;
+  const ageMinutes = parseRelativePostAgeMinutes(post?.time || "");
+  const hasSolvedSignal = /已解决|解决了|已经解决|已完成|完成了|不用了|找到了|已找到|已处理|已借到|已接到/.test(text);
+  const hasExpiredSignal = /已过期|过期|来不及|错过|截止|结束了/.test(text);
+  const hasTonightDeadline = /今晚|今天|下班前|\d{1,2}\s*点前/.test(text);
+  const isStaleRequest = post?.category === "ask" && (ageMinutes >= 24 * 60 || (hasTonightDeadline && ageMinutes >= 12 * 60));
+
+  if (hasSolvedSignal) return { status: "已解决", reason: "AI 检查到帖子内容里有已解决、已完成或已找到的表达。" };
+  if (hasExpiredSignal || isStaleRequest) return { status: "已过期", reason: "AI 检查到帖子已超过时效，或内容里出现过期/截止相关表达。" };
+  return { status: "未解决", reason: "AI 未发现已解决或过期信号，帖子仍可继续响应。" };
+}
+
+function checkCommunityPost(input = {}) {
+  if (!input || typeof input !== "object") throw new ValidationError([{ field: "body", message: "请求体不能为空" }]);
+  const post = input.post || input;
+  requireText(post.title || post.text, "post");
+  const result = inferPostStatus(post);
+  return {
+    ...result,
+    checkedAt: new Date().toISOString(),
+    model: "local-post-status-rules",
+  };
+}
+
 function compactBuilding(value) {
   return value.replace(/\s+/g, "");
 }
@@ -527,6 +563,7 @@ module.exports = {
   parseTaskText,
   assistantChat,
   assistantVoiceChat,
+  checkCommunityPost,
   rankWorkers,
   suggestPrice,
 };

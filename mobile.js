@@ -110,6 +110,7 @@ let activeChatId = null;
 const chats = {};
 let activePostId = null;
 const reportUrgencyOptions = ["一般", "紧急", "非常紧急"];
+const postStatusOptions = ["未解决", "已解决", "已过期"];
 const quickTopicSearches = {
   errand: "\u0023\u8dd1\u817f\u4e92\u52a9",
   share: "\u0023\u7269\u54c1\u5171\u4eab",
@@ -395,7 +396,7 @@ function renderDiscover() {
                 <p>${item.author} · ${item.time}</p>
                 <h2>${item.title}</h2>
                 <p>${item.text}</p>
-                <small>${item.count}</small>
+                <small>${item.count} · ${ensurePostInteractions(item).status}</small>
               </div>
               <span>${categoryLabel(item.category)}</span>
             </article>
@@ -434,7 +435,38 @@ function ensurePostInteractions(post) {
   post.favorited = Boolean(post.favorited);
   post.reported = Boolean(post.reported);
   post.showReportForm = Boolean(post.showReportForm);
+  post.status = post.status || "未解决";
+  post.aiChecked = Boolean(post.aiChecked);
   return post;
+}
+
+function canManagePostStatus(post) {
+  if (!post) return false;
+  if (post.author === profileState.name) return true;
+  return Boolean(chats[`DM-${post.id}`]);
+}
+
+function postActionLabel(post) {
+  if (post.author === profileState.name) return "查看沟通";
+  return post.category === "ask" ? "我想帮助" : "邀请帮助";
+}
+
+function postStatusClass(status) {
+  if (status === "已解决") return "solved";
+  if (status === "已过期") return "expired";
+  return "open";
+}
+
+function renderPostStatusControls(post) {
+  if (!canManagePostStatus(post)) return "";
+  return `
+    <section class="post-status-controls" aria-label="设置帖子状态">
+      <strong>帖子状态</strong>
+      <div>
+        ${postStatusOptions.map((status) => `<button type="button" class="${post.status === status ? "active" : ""}" data-post-status="${status}">${status}</button>`).join("")}
+      </div>
+    </section>
+  `;
 }
 
 function renderPostDetail() {
@@ -449,6 +481,7 @@ function renderPostDetail() {
       <div>
         <p>${post.author} · ${post.time}</p>
         <h2>${post.title}</h2>
+        <span class="post-status-badge ${postStatusClass(post.status)}">${post.status}</span>
       </div>
       <button type="button" class="round-close" data-action="close-post-detail" aria-label="关闭帖子详情">×</button>
     </div>
@@ -456,9 +489,12 @@ function renderPostDetail() {
     <div class="post-detail-actions">
       <button type="button" class="${post.liked ? "active" : ""}" data-post-action="like">点赞 ${post.likes}</button>
       <button type="button" class="${post.favorited ? "active" : ""}" data-post-action="favorite">收藏 ${post.favorites}</button>
-      <button type="button" data-post-action="message">私信</button>
+      <button type="button" data-post-action="message">${postActionLabel(post)}</button>
+      <button type="button" class="${post.aiChecked ? "active" : ""}" data-post-action="ai-check">AI检查</button>
       <button type="button" class="${post.reported ? "reported" : ""}" data-post-action="report">${post.reported ? "已投诉" : "投诉"}</button>
     </div>
+    ${post.aiCheckReason ? `<p class="post-ai-note">${post.aiCheckReason}</p>` : ""}
+    ${renderPostStatusControls(post)}
     ${post.showReportForm ? renderPostReportForm(post) : ""}
     <section class="post-comments" aria-label="评论">
       <h3>评论</h3>
@@ -521,6 +557,10 @@ function handlePostAction(action) {
     openPostPrivateMessage(post);
     return;
   }
+  if (action === "ai-check") {
+    runPostAiCheck(post);
+    return;
+  }
   if (action === "like") {
     post.liked = !post.liked;
     post.likes += post.liked ? 1 : -1;
@@ -530,6 +570,45 @@ function handlePostAction(action) {
     post.favorites += post.favorited ? 1 : -1;
   }
   if (action === "report") post.showReportForm = true;
+  renderPostDetail();
+}
+
+async function runPostAiCheck(post) {
+  try {
+    const response = await fetch("/api/community/posts/check", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ post }),
+    });
+    const result = await response.json();
+    const check = result.check || result;
+    post.status = check.status || post.status || "未解决";
+    post.aiChecked = true;
+    post.aiCheckReason = check.reason || "AI 已完成帖子状态检查。";
+  } catch {
+    post.status = inferLocalPostStatus(post).status;
+    post.aiChecked = true;
+    post.aiCheckReason = "网络暂时不可用，已按本地规则完成检查。";
+  }
+  renderHome();
+  renderDiscover();
+  renderPostDetail();
+}
+
+function inferLocalPostStatus(post) {
+  const text = `${post.title || ""}${post.text || ""}${post.status || ""}`;
+  if (/已解决|解决了|已经解决|已完成|完成了|找到了|已找到|不用了|已处理/.test(text)) return { status: "已解决" };
+  if (/已过期|过期|截止|结束了|来不及/.test(text)) return { status: "已过期" };
+  return { status: "未解决" };
+}
+
+function setPostStatus(status) {
+  const post = activePostId ? ensurePostInteractions(findCommunityPost(activePostId)) : null;
+  if (!post || !postStatusOptions.includes(status) || !canManagePostStatus(post)) return;
+  post.status = status;
+  post.aiCheckReason = `状态已由${post.author === profileState.name ? "发布者" : "帮助者"}设置为${status}。`;
+  renderHome();
+  renderDiscover();
   renderPostDetail();
 }
 
@@ -558,18 +637,20 @@ function cancelPostReport() {
 
 function openPostPrivateMessage(post) {
   const chatId = `DM-${post.id}`;
+  const title = post.category === "ask" ? `我想帮助 ${post.author}` : `邀请帮助 ${post.author}`;
+  const initialText = post.category === "ask" ? `你好，我看到你的求助帖，想了解一下细节，看能不能帮上忙。` : `你好，我看到你的帮助帖，想邀请你看看这个需求是否方便协助。`;
   if (!orders.some((item) => item.id === chatId)) {
     orders.unshift({
       id: chatId,
-      title: `私信 ${post.author}`,
+      title,
       desc: `来自发现帖子：${post.title}`,
-      status: "私信",
+      status: title,
       category: post.category || "chat",
     });
   }
   if (!chats[chatId]) {
     chats[chatId] = [
-      { role: "neighbor", text: `你好，我是${post.author}，关于这条帖子可以直接和我聊。` },
+      { role: "neighbor", text: initialText },
     ];
   }
   closePostDetail();
@@ -1352,6 +1433,7 @@ function bindEvents() {
     }
 
     if (button.dataset.postAction) handlePostAction(button.dataset.postAction);
+    if (button.dataset.postStatus) setPostStatus(button.dataset.postStatus);
     if (button.dataset.borrowId) borrowTool(button.dataset.borrowId);
     if (button.dataset.nextOrder) button.textContent = "已读";
     if (button.dataset.openChat) openPrivateChat(button.dataset.openChat);
