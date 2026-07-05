@@ -168,6 +168,10 @@ function AvatarContent(className = "") {
   return `<span>${profileState.name.slice(0, 1)}</span>`;
 }
 
+function currentUserPostAvatar() {
+  return profileState.avatar || "";
+}
+
 function HomeHeader() {
   return `
     <header class="home-header">
@@ -790,6 +794,7 @@ function publishManualPost() {
     text,
     count: "等待回应",
     author: profileState.name,
+    avatar: currentUserPostAvatar(),
     time: "刚刚",
     heat: 98,
     category: composeCategory,
@@ -1005,6 +1010,7 @@ function buildPostFromAssistant(result, text) {
     text: task.description || (isRequest ? `想请邻居帮忙从${location}取快递，可以免费或付费协商。` : `我今天会去${location}，如果有邻居需要顺手带快递，可以留言。`),
     count: "等待回应",
     author: profileState.name,
+    avatar: currentUserPostAvatar(),
     time: "刚刚",
     heat: 99,
     category: isRequest ? "ask" : "offer",
