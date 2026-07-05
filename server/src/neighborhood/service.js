@@ -15,28 +15,44 @@ function parseRelativePostAgeMinutes(timeText = "") {
   if (minute) return Number(minute[1]);
   const hour = String(timeText).match(/(\d+)\s*小时/);
   if (hour) return Number(hour[1]) * 60;
+  if (/昨天/.test(timeText)) return 24 * 60;
+  if (/前天/.test(timeText)) return 48 * 60;
   const day = String(timeText).match(/(\d+)\s*天/);
   if (day) return Number(day[1]) * 24 * 60;
   return 0;
+}
+
+function inferPostTtlMinutes(post, text) {
+  const isBorrow = /借|借用|剪刀|电钻|梯子|推车|工具|雨伞|充电器|插线板/.test(text);
+  const isErrand = /快递|取件|代取|帮取|跑腿|带回|顺路/.test(text);
+  const isChildcare = /接孩子|看护|照看|陪诊|老人|小孩/.test(text);
+  const hasSameDaySignal = /今天|今晚|上午|下午|晚上|下班前|\d{1,2}\s*点前/.test(text);
+
+  if (isErrand || hasSameDaySignal) return 12 * 60;
+  if (isChildcare) return 24 * 60;
+  if (isBorrow) return 48 * 60;
+  if (post?.category === "ask") return 72 * 60;
+  return 7 * 24 * 60;
 }
 
 function inferPostStatus(post) {
   const text = `${post?.title || ""}${post?.text || ""}${post?.status || ""}`;
   const ageMinutes = parseRelativePostAgeMinutes(post?.time || "");
   const hasSolvedSignal = /已解决|解决了|已经解决|已完成|完成了|不用了|找到了|已找到|已处理|已借到|已接到/.test(text);
-  const hasExpiredSignal = /已过期|过期|来不及|错过|截止|结束了/.test(text);
-  const hasTonightDeadline = /今晚|今天|下班前|\d{1,2}\s*点前/.test(text);
-  const isStaleRequest = post?.category === "ask" && (ageMinutes >= 24 * 60 || (hasTonightDeadline && ageMinutes >= 12 * 60));
+  const hasExpiredSignal = /已失效|失效|已过期|过期|来不及|错过|截止|结束了/.test(text);
+  const ttlMinutes = inferPostTtlMinutes(post, text);
+  const isStaleRequest = post?.category === "ask" && ageMinutes >= ttlMinutes;
 
   if (hasSolvedSignal) return { status: "已解决", reason: "AI 检查到帖子内容里有已解决、已完成或已找到的表达。" };
-  if (hasExpiredSignal || isStaleRequest) return { status: "已过期", reason: "AI 检查到帖子已超过时效，或内容里出现过期/截止相关表达。" };
+  if (hasExpiredSignal || isStaleRequest) return { status: "已失效", reason: `AI 检查到帖子已超过约 ${Math.round(ttlMinutes / 60)} 小时的合理响应时效，或内容里出现失效/截止相关表达。` };
   return { status: "未解决", reason: "AI 未发现已解决或过期信号，帖子仍可继续响应。" };
 }
 
 function normalizePostCheckStatus(value) {
-  if (["未解决", "已解决", "已过期"].includes(value)) return value;
+  if (["未解决", "已解决", "已失效"].includes(value)) return value;
+  if (value === "已过期") return "已失效";
   if (/solved|resolved|done|完成|解决/.test(String(value || "").toLowerCase())) return "已解决";
-  if (/expired|stale|timeout|过期|超时|截止/.test(String(value || "").toLowerCase())) return "已过期";
+  if (/expired|stale|invalid|timeout|失效|过期|超时|截止/.test(String(value || "").toLowerCase())) return "已失效";
   return "未解决";
 }
 
@@ -55,6 +71,18 @@ function extractJsonObject(text) {
   }
 }
 
+function parseLoosePostStatusResult(content, fallback) {
+  const text = String(content || "").trim();
+  if (!text) return null;
+  const status = normalizePostCheckStatus(text);
+  const hasStatusSignal = /未解决|已解决|已失效|已过期|失效|过期|解决|expired|stale|invalid|solved|resolved/i.test(text);
+  if (!hasStatusSignal) return null;
+  return {
+    status,
+    reason: text.length > 80 ? text.slice(0, 80) : text || fallback.reason,
+  };
+}
+
 async function callPostStatusModel(post, fallback, env = process.env) {
   const apiKey = env.ASSISTANT_API_KEY;
   const baseUrl = env.ASSISTANT_BASE_URL || "https://api.aigcly.top";
@@ -70,11 +98,12 @@ async function callPostStatusModel(post, fallback, env = process.env) {
       },
       body: JSON.stringify({
         model,
+        response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
             content:
-              "你是邻里帮后台帖子状态巡检助手。只根据帖子内容、发布时间、当前状态判断帖子是否仍可响应。只返回 JSON，不要解释，格式为 {\"status\":\"未解决|已解决|已过期\",\"reason\":\"一句后台处理原因\"}。如果证据不足，返回未解决。",
+              "你是邻里帮后台帖子状态巡检助手。只根据帖子内容、发布时间、当前状态判断帖子是否仍可响应。重点检查时效性：当天跑腿/取快递超过半天、借剪刀/借工具等临时借用超过两天仍未解决，通常应标为已失效；明确完成才标已解决；证据不足标未解决。只返回 JSON，不要解释，格式为 {\"status\":\"未解决|已解决|已失效\",\"reason\":\"一句后台处理原因\"}。",
           },
           {
             role: "user",
@@ -99,11 +128,12 @@ async function callPostStatusModel(post, fallback, env = process.env) {
     const payload = parseModelPayload(raw);
     const content = payload?.choices?.[0]?.message?.content || payload?.choices?.[0]?.delta?.content;
     const parsed = extractJsonObject(content);
-    if (!parsed) return { ...fallback, source: "local_rules", model: "local-post-status-rules", modelError: "invalid_json" };
+    const loose = parsed || parseLoosePostStatusResult(content, fallback);
+    if (!loose) return { ...fallback, source: "local_rules", model: "local-post-status-rules", modelError: "invalid_json" };
 
     return {
-      status: normalizePostCheckStatus(parsed.status),
-      reason: parsed.reason || fallback.reason,
+      status: normalizePostCheckStatus(loose.status),
+      reason: loose.reason || fallback.reason,
       source: "model",
       model,
     };
@@ -122,6 +152,18 @@ async function checkCommunityPost(input = {}, env = process.env) {
     ...result,
     checkedAt: new Date().toISOString(),
   };
+}
+
+async function checkCommunityPosts(input = {}, env = process.env) {
+  if (!input || typeof input !== "object") throw new ValidationError([{ field: "body", message: "请求体不能为空" }]);
+  if (!Array.isArray(input.posts) || !input.posts.length) {
+    throw new ValidationError([{ field: "posts", message: "请选择要检查的帖子" }]);
+  }
+  const checks = [];
+  for (const post of input.posts.slice(0, 50)) {
+    checks.push({ id: post.id, check: await checkCommunityPost({ post }, env) });
+  }
+  return { checks, checkedAt: new Date().toISOString(), count: checks.length };
 }
 
 function compactBuilding(value) {
@@ -643,6 +685,7 @@ module.exports = {
   assistantChat,
   assistantVoiceChat,
   checkCommunityPost,
+  checkCommunityPosts,
   rankWorkers,
   suggestPrice,
 };

@@ -127,6 +127,7 @@ let desktopVoicePressing = false;
 let desktopVoiceStopRequested = false;
 let activeDesktopPostId = null;
 let desktopAiReviewRunning = false;
+let selectedAiReviewPostIds = new Set();
 const desktopReportUrgencyOptions = ["一般", "紧急", "非常紧急"];
 function desktopCategoryLabel(category) {
   if (category === "offer") return "\u5e2e\u52a9";
@@ -638,7 +639,7 @@ function ensureDesktopPostInteractions(post) {
 
 function desktopPostStatusClass(status) {
   if (status === "已解决") return "solved";
-  if (status === "已过期") return "expired";
+  if (status === "已过期" || status === "已失效") return "expired";
   return "open";
 }
 
@@ -674,17 +675,23 @@ function renderDesktopAiReview() {
   const solved = posts.filter((post) => desktopPostStatusClass(post.status) === "solved").length;
   const expired = posts.filter((post) => desktopPostStatusClass(post.status) === "expired").length;
   const checked = posts.filter((post) => post.aiChecked).length;
+  const selectedCount = posts.filter((post) => selectedAiReviewPostIds.has(post.id)).length;
   summary.innerHTML = `
     <article><strong>${posts.length}</strong><span>帖子总数</span></article>
     <article><strong>${checked}</strong><span>已巡检</span></article>
     <article><strong>${solved}</strong><span>已解决</span></article>
-    <article><strong>${expired}</strong><span>已过期</span></article>
+    <article><strong>${expired}</strong><span>已失效</span></article>
+    <article><strong>${selectedCount}</strong><span>已选择</span></article>
   `;
   list.innerHTML = posts
     .map(
       (post) => `
         <article class="ai-review-card">
           <div class="ai-review-card-main">
+            <label class="ai-review-select" title="选择帖子">
+              <input type="checkbox" data-ai-review-select="${post.id}" ${selectedAiReviewPostIds.has(post.id) ? "checked" : ""} ${desktopAiReviewRunning ? "disabled" : ""} />
+              <span></span>
+            </label>
             <span class="desktop-post-status-badge ${desktopPostStatusClass(post.status)}">${post.status}</span>
             <div>
               <p>${post.author} · ${post.time} · ${desktopCategoryLabel(post.category)}</p>
@@ -703,6 +710,8 @@ function renderDesktopAiReview() {
     .join("");
   const allButton = $("#runAllPostAiChecks");
   if (allButton) allButton.disabled = desktopAiReviewRunning;
+  const selectedButton = $("#runSelectedPostAiChecks");
+  if (selectedButton) selectedButton.disabled = desktopAiReviewRunning || selectedCount === 0;
 }
 
 function renderDesktopPostPanel() {
@@ -801,6 +810,14 @@ function handleDesktopPostAction(action) {
   renderDesktopPostPanel();
 }
 
+function applyDesktopPostAiCheckResult(post, check) {
+  post.status = check.status || post.status || "未解决";
+  post.aiChecked = true;
+  post.aiCheckSource = check.source || "local_rules";
+  post.aiCheckedAt = check.checkedAt || new Date().toISOString();
+  post.aiCheckReason = check.reason || "AI 已完成帖子状态检查。";
+}
+
 async function runDesktopPostAiCheck(post) {
   try {
     const response = await fetch("/api/community/posts/check", {
@@ -809,33 +826,59 @@ async function runDesktopPostAiCheck(post) {
       body: JSON.stringify({ post }),
     });
     const result = await response.json();
-    const check = result.check || result;
-    post.status = check.status || post.status || "未解决";
-    post.aiChecked = true;
-    post.aiCheckSource = check.source || "local_rules";
-    post.aiCheckedAt = check.checkedAt || new Date().toISOString();
-    post.aiCheckReason = check.reason || "AI 已完成帖子状态检查。";
+    applyDesktopPostAiCheckResult(post, result.check || result);
   } catch {
-    post.status = "未解决";
-    post.aiChecked = true;
-    post.aiCheckSource = "local_rules";
-    post.aiCheckedAt = new Date().toISOString();
-    post.aiCheckReason = "网络暂时不可用，已按本地规则完成检查。";
+    applyDesktopPostAiCheckResult(post, {
+      status: "未解决",
+      source: "local_rules",
+      checkedAt: new Date().toISOString(),
+      reason: "网络暂时不可用，已按本地规则完成检查。",
+    });
   }
   renderDesktopDiscover();
   renderDesktopAiReview();
   renderDesktopPostPanel();
 }
 
-async function runAllDesktopPostAiChecks() {
+async function runDesktopPostAiChecks(posts) {
   if (desktopAiReviewRunning) return;
+  const targets = posts.map(ensureDesktopPostInteractions).filter(Boolean);
+  if (!targets.length) return;
   desktopAiReviewRunning = true;
   renderDesktopAiReview();
-  for (const post of desktopPosts.map(ensureDesktopPostInteractions)) {
-    await runDesktopPostAiCheck(post);
+  try {
+    const response = await fetch("/api/community/posts/check-batch", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ posts: targets }),
+    });
+    const result = await response.json();
+    (result.checks || []).forEach(({ id, check }) => {
+      const post = findDesktopPost(id);
+      if (post) applyDesktopPostAiCheckResult(post, check || {});
+    });
+  } catch {
+    targets.forEach((post) =>
+      applyDesktopPostAiCheckResult(post, {
+        status: "未解决",
+        source: "local_rules",
+        checkedAt: new Date().toISOString(),
+        reason: "批量检查暂时不可用，请稍后重试或使用单条检查。",
+      })
+    );
   }
   desktopAiReviewRunning = false;
+  renderDesktopDiscover();
   renderDesktopAiReview();
+  renderDesktopPostPanel();
+}
+
+function runAllDesktopPostAiChecks() {
+  runDesktopPostAiChecks(desktopPosts);
+}
+
+function runSelectedDesktopPostAiChecks() {
+  runDesktopPostAiChecks(desktopPosts.filter((post) => selectedAiReviewPostIds.has(post.id)));
 }
 
 function setDesktopPostStatus(status) {
@@ -1212,7 +1255,23 @@ function initEvents() {
     openDesktopPost(card.dataset.desktopOpenPost);
   });
   $("#runAllPostAiChecks")?.addEventListener("click", runAllDesktopPostAiChecks);
+  $("#runSelectedPostAiChecks")?.addEventListener("click", runSelectedDesktopPostAiChecks);
+  $("#selectAllAiReviewPosts")?.addEventListener("click", () => {
+    selectedAiReviewPostIds = new Set(desktopPosts.map((post) => post.id));
+    renderDesktopAiReview();
+  });
+  $("#clearAiReviewPosts")?.addEventListener("click", () => {
+    selectedAiReviewPostIds.clear();
+    renderDesktopAiReview();
+  });
   $("#desktopAiReviewList")?.addEventListener("click", (event) => {
+    const checkbox = event.target.closest("[data-ai-review-select]");
+    if (checkbox) {
+      if (checkbox.checked) selectedAiReviewPostIds.add(checkbox.dataset.aiReviewSelect);
+      else selectedAiReviewPostIds.delete(checkbox.dataset.aiReviewSelect);
+      renderDesktopAiReview();
+      return;
+    }
     const button = event.target.closest("[data-ai-review-post]");
     if (!button || desktopAiReviewRunning) return;
     const post = ensureDesktopPostInteractions(findDesktopPost(button.dataset.aiReviewPost));

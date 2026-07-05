@@ -458,18 +458,19 @@ function canManagePostStatus(post) {
 
 function postActionLabel(post) {
   if (post.status === "已解决") return "已解决";
+  if (post.status === "已失效") return "已失效";
   if (post.status === "已过期") return "已过期";
   if (post.author === profileState.name) return "查看沟通";
   return post.category === "ask" ? "我想帮助" : "邀请帮助";
 }
 
 function canOpenPostMessage(post) {
-  return post.status !== "已解决" && post.status !== "已过期";
+  return post.status !== "已解决" && post.status !== "已过期" && post.status !== "已失效";
 }
 
 function postStatusClass(status) {
   if (status === "已解决") return "solved";
-  if (status === "已过期") return "expired";
+  if (status === "已过期" || status === "已失效") return "expired";
   return "open";
 }
 

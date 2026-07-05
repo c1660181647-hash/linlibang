@@ -207,9 +207,14 @@
             <div>
               <p class="eyebrow">Backend AI Review</p>
               <h3>AI帖子状态巡检</h3>
-              <p>后台读取发现页帖子，使用模型判断是否已解决或已过期；模型不可用时自动降级本地规则。</p>
+              <p>后台读取发现页帖子，使用模型判断是否已解决或已失效；模型不可用时自动降级本地规则。</p>
             </div>
-            <button class="primary-button" id="runAllPostAiChecks" type="button">批量AI检查</button>
+            <div class="ai-review-actions">
+              <button class="ghost-button" id="selectAllAiReviewPosts" type="button">全选</button>
+              <button class="ghost-button" id="clearAiReviewPosts" type="button">清空</button>
+              <button class="ghost-button" id="runSelectedPostAiChecks" type="button">检查所选</button>
+              <button class="primary-button" id="runAllPostAiChecks" type="button">AI一键检查</button>
+            </div>
           </div>
           <div id="desktopAiReviewSummary" class="ai-review-summary"></div>
           <div id="desktopAiReviewList" class="ai-review-list"></div>

@@ -159,6 +159,31 @@ test("assistant prioritizes childcare help over route wording", async (t) => {
   assert.deepEqual(body.nearbyRequests, []);
 });
 
+test("post AI review marks stale borrowing requests as invalid", async (t) => {
+  const baseUrl = await startTestServer(t);
+  const { response, body } = await jsonRequest(baseUrl, "/api/community/posts/check-batch", {
+    method: "POST",
+    body: JSON.stringify({
+      posts: [
+        {
+          id: "stale-scissors",
+          title: "想借一把剪刀",
+          text: "昨天想借剪刀剪一下包装，到现在还没解决。",
+          time: "2天前",
+          category: "ask",
+          status: "未解决",
+        },
+      ],
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(body.count, 1);
+  assert.equal(body.checks[0].id, "stale-scissors");
+  assert.equal(body.checks[0].check.status, "已失效");
+  assert.equal(body.checks[0].check.source, "local_rules");
+});
+
 test("assistant voice endpoint requires transcription configuration", async (t) => {
   const baseUrl = await startTestServer(t);
   const { response, body } = await jsonRequest(baseUrl, "/api/assistant/voice", {
