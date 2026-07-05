@@ -33,15 +33,94 @@ function inferPostStatus(post) {
   return { status: "未解决", reason: "AI 未发现已解决或过期信号，帖子仍可继续响应。" };
 }
 
-function checkCommunityPost(input = {}) {
+function normalizePostCheckStatus(value) {
+  if (["未解决", "已解决", "已过期"].includes(value)) return value;
+  if (/solved|resolved|done|完成|解决/.test(String(value || "").toLowerCase())) return "已解决";
+  if (/expired|stale|timeout|过期|超时|截止/.test(String(value || "").toLowerCase())) return "已过期";
+  return "未解决";
+}
+
+function extractJsonObject(text) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = String(text).match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+async function callPostStatusModel(post, fallback, env = process.env) {
+  const apiKey = env.ASSISTANT_API_KEY;
+  const baseUrl = env.ASSISTANT_BASE_URL || "https://api.aigcly.top";
+  const model = env.ASSISTANT_MODEL || "grok-4.20-multi-agent-xhigh";
+  if (!apiKey) return { ...fallback, source: "local_rules", model: "local-post-status-rules" };
+
+  try {
+    const response = await fetch(`${baseUrl.replace(/\/$/, "")}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "你是邻里帮后台帖子状态巡检助手。只根据帖子内容、发布时间、当前状态判断帖子是否仍可响应。只返回 JSON，不要解释，格式为 {\"status\":\"未解决|已解决|已过期\",\"reason\":\"一句后台处理原因\"}。如果证据不足，返回未解决。",
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              title: post.title || "",
+              text: post.text || "",
+              time: post.time || "",
+              category: post.category || "",
+              status: post.status || "",
+            }),
+          },
+        ],
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      return { ...fallback, source: "local_rules", model: "local-post-status-rules", modelError: response.status };
+    }
+
+    const raw = await response.text();
+    const payload = parseModelPayload(raw);
+    const content = payload?.choices?.[0]?.message?.content || payload?.choices?.[0]?.delta?.content;
+    const parsed = extractJsonObject(content);
+    if (!parsed) return { ...fallback, source: "local_rules", model: "local-post-status-rules", modelError: "invalid_json" };
+
+    return {
+      status: normalizePostCheckStatus(parsed.status),
+      reason: parsed.reason || fallback.reason,
+      source: "model",
+      model,
+    };
+  } catch (error) {
+    return { ...fallback, source: "local_rules", model: "local-post-status-rules", modelError: error.message };
+  }
+}
+
+async function checkCommunityPost(input = {}, env = process.env) {
   if (!input || typeof input !== "object") throw new ValidationError([{ field: "body", message: "请求体不能为空" }]);
   const post = input.post || input;
   requireText(post.title || post.text, "post");
-  const result = inferPostStatus(post);
+  const fallback = inferPostStatus(post);
+  const result = await callPostStatusModel(post, fallback, env);
   return {
     ...result,
     checkedAt: new Date().toISOString(),
-    model: "local-post-status-rules",
   };
 }
 

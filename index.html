@@ -30,6 +30,10 @@
             <span>社区发现</span>
             <small>热门、最新、搜索</small>
           </button>
+          <button class="nav-item" data-view="ai-review">
+            <span>AI巡检</span>
+            <small>后台检查帖子状态</small>
+          </button>
           <button class="nav-item" data-view="tools">
             <span>工具银行</span>
             <small>借用与归还</small>
@@ -196,6 +200,19 @@
             <input id="desktopDiscoverSearch" class="discover-search" type="search" placeholder="搜索快递、工具、活动" />
           </div>
           <div id="desktopDiscoverList" class="desktop-discover-list"></div>
+        </section>
+
+        <section class="view" id="view-ai-review">
+          <div class="split-header">
+            <div>
+              <p class="eyebrow">Backend AI Review</p>
+              <h3>AI帖子状态巡检</h3>
+              <p>后台读取发现页帖子，使用模型判断是否已解决或已过期；模型不可用时自动降级本地规则。</p>
+            </div>
+            <button class="primary-button" id="runAllPostAiChecks" type="button">批量AI检查</button>
+          </div>
+          <div id="desktopAiReviewSummary" class="ai-review-summary"></div>
+          <div id="desktopAiReviewList" class="ai-review-list"></div>
         </section>
 
         <section class="view" id="view-tools">

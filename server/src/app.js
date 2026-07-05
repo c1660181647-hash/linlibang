@@ -76,7 +76,7 @@ async function routeApi(method, pathname, body, store, env = process.env) {
   if (method === "GET" && pathname === "/api/tools") return { status: 200, body: { tools: readCollection(store, "tools") } };
   if (method === "GET" && pathname === "/api/orders") return { status: 200, body: { orders: readCollection(store, "orders") } };
   if (method === "GET" && pathname === "/api/community/feed") return { status: 200, body: { posts: readCollection(store, "feed") } };
-  if (method === "POST" && pathname === "/api/community/posts/check") return { status: 200, body: { check: service.checkCommunityPost(body) } };
+  if (method === "POST" && pathname === "/api/community/posts/check") return { status: 200, body: { check: await service.checkCommunityPost(body, env) } };
   if (method === "POST" && pathname === "/api/assistant/chat") return { status: 200, body: await service.assistantChat(store, body, env) };
   if (method === "POST" && pathname === "/api/assistant/voice") return { status: 200, body: await service.assistantVoiceChat(store, body, env) };
   if (method === "POST" && pathname === "/api/tasks/parse") return { status: 200, body: service.parseAndMatch(store, body.text) };

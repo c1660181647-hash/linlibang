@@ -126,6 +126,7 @@ let desktopVoiceStatusText = "";
 let desktopVoicePressing = false;
 let desktopVoiceStopRequested = false;
 let activeDesktopPostId = null;
+let desktopAiReviewRunning = false;
 const desktopReportUrgencyOptions = ["一般", "紧急", "非常紧急"];
 function desktopCategoryLabel(category) {
   if (category === "offer") return "\u5e2e\u52a9";
@@ -653,6 +654,57 @@ function renderDesktopPostStatusControls(post) {
   `;
 }
 
+function desktopAiReviewSourceLabel(post) {
+  if (post.aiCheckSource === "model") return "模型检查";
+  if (post.aiCheckSource === "local_rules") return "本地规则";
+  return "待检查";
+}
+
+function desktopAiReviewMeta(post) {
+  if (!post.aiChecked) return "尚未执行后台巡检";
+  const checkedAt = post.aiCheckedAt ? new Date(post.aiCheckedAt).toLocaleString("zh-CN", { hour12: false }) : "刚刚";
+  return `${desktopAiReviewSourceLabel(post)} · ${checkedAt}`;
+}
+
+function renderDesktopAiReview() {
+  const list = $("#desktopAiReviewList");
+  const summary = $("#desktopAiReviewSummary");
+  if (!list || !summary) return;
+  const posts = desktopPosts.map(ensureDesktopPostInteractions);
+  const solved = posts.filter((post) => desktopPostStatusClass(post.status) === "solved").length;
+  const expired = posts.filter((post) => desktopPostStatusClass(post.status) === "expired").length;
+  const checked = posts.filter((post) => post.aiChecked).length;
+  summary.innerHTML = `
+    <article><strong>${posts.length}</strong><span>帖子总数</span></article>
+    <article><strong>${checked}</strong><span>已巡检</span></article>
+    <article><strong>${solved}</strong><span>已解决</span></article>
+    <article><strong>${expired}</strong><span>已过期</span></article>
+  `;
+  list.innerHTML = posts
+    .map(
+      (post) => `
+        <article class="ai-review-card">
+          <div class="ai-review-card-main">
+            <span class="desktop-post-status-badge ${desktopPostStatusClass(post.status)}">${post.status}</span>
+            <div>
+              <p>${post.author} · ${post.time} · ${desktopCategoryLabel(post.category)}</p>
+              <h3>${post.title}</h3>
+              <span>${post.text}</span>
+            </div>
+          </div>
+          <div class="ai-review-card-side">
+            <strong>${desktopAiReviewMeta(post)}</strong>
+            <p>${post.aiCheckReason || "点击 AI 检查后，这里会显示模型或规则给出的处理原因。"}</p>
+            <button type="button" data-ai-review-post="${post.id}" ${desktopAiReviewRunning ? "disabled" : ""}>AI检查</button>
+          </div>
+        </article>
+      `
+    )
+    .join("");
+  const allButton = $("#runAllPostAiChecks");
+  if (allButton) allButton.disabled = desktopAiReviewRunning;
+}
+
 function renderDesktopPostPanel() {
   const panel = $("#desktopPostPanel");
   if (!panel || !activeDesktopPostId) return;
@@ -760,14 +812,30 @@ async function runDesktopPostAiCheck(post) {
     const check = result.check || result;
     post.status = check.status || post.status || "未解决";
     post.aiChecked = true;
+    post.aiCheckSource = check.source || "local_rules";
+    post.aiCheckedAt = check.checkedAt || new Date().toISOString();
     post.aiCheckReason = check.reason || "AI 已完成帖子状态检查。";
   } catch {
     post.status = "未解决";
     post.aiChecked = true;
+    post.aiCheckSource = "local_rules";
+    post.aiCheckedAt = new Date().toISOString();
     post.aiCheckReason = "网络暂时不可用，已按本地规则完成检查。";
   }
   renderDesktopDiscover();
+  renderDesktopAiReview();
   renderDesktopPostPanel();
+}
+
+async function runAllDesktopPostAiChecks() {
+  if (desktopAiReviewRunning) return;
+  desktopAiReviewRunning = true;
+  renderDesktopAiReview();
+  for (const post of desktopPosts.map(ensureDesktopPostInteractions)) {
+    await runDesktopPostAiCheck(post);
+  }
+  desktopAiReviewRunning = false;
+  renderDesktopAiReview();
 }
 
 function setDesktopPostStatus(status) {
@@ -1143,6 +1211,13 @@ function initEvents() {
     event.preventDefault();
     openDesktopPost(card.dataset.desktopOpenPost);
   });
+  $("#runAllPostAiChecks")?.addEventListener("click", runAllDesktopPostAiChecks);
+  $("#desktopAiReviewList")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-ai-review-post]");
+    if (!button || desktopAiReviewRunning) return;
+    const post = ensureDesktopPostInteractions(findDesktopPost(button.dataset.aiReviewPost));
+    if (post) runDesktopPostAiCheck(post);
+  });
   $("#desktopPostPanel")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-desktop-post-close]")) closeDesktopPost();
     const actionButton = event.target.closest("[data-desktop-post-action]");
@@ -1211,3 +1286,4 @@ initEvents();
 updateAssistant();
 renderDesktopAssistant();
 renderDesktopDiscover();
+renderDesktopAiReview();
