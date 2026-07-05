@@ -1121,7 +1121,7 @@ function initEvents() {
     if (button.dataset.helperId) inviteDesktopHelper(button.dataset.helperId, button.dataset.helperMode);
   });
   $("#seedRunTask").addEventListener("click", () => {
-    $("#requestText").value = "今晚 7 点前帮我从小区门口取个快递，送到 3 栋楼下，10 元以内。";
+    $("#requestText").value = "麻烦邻居帮忙在今晚 7 点前从小区门口取一下快递，送到 3 栋楼下，辛苦费 10 元以内，谢谢。";
     switchView("resident");
     parseAndRender();
   });
@@ -1136,7 +1136,7 @@ function initEvents() {
   });
   $("#simulateTimeout").addEventListener("click", () => {
     if (!orders.length) {
-      const task = parseTask("今晚 7 点前帮我从小区门口取个快递，送到 3 栋楼下，10 元以内。");
+      const task = parseTask("麻烦邻居帮忙在今晚 7 点前从小区门口取一下快递，送到 3 栋楼下，辛苦费 10 元以内，谢谢。");
       const candidate = rankWorkers(task)[0];
       createOrder(task, candidate);
     }

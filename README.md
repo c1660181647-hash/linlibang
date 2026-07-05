@@ -70,7 +70,7 @@ Invoke-WebRequest `
   -Uri "http://127.0.0.1:3001/api/tasks/parse" `
   -Method POST `
   -ContentType "application/json" `
-  -Body '{"text":"今晚 7 点前帮我从小区门口取个快递，送到 3 栋楼下，10 元以内。"}'
+  -Body '{"text":"麻烦邻居帮忙在今晚 7 点前从小区门口取一下快递，送到 3 栋楼下，辛苦费 10 元以内，谢谢。"}'
 ```
 
 ## 目录
