@@ -457,16 +457,7 @@ function postStatusClass(status) {
 }
 
 function renderPostStatusControls(post) {
-  if (!canManagePostStatus(post)) return "";
-  if (post.status === "已解决") return "";
-  return `
-    <section class="post-status-controls" aria-label="设置帖子状态">
-      <strong>帖子状态</strong>
-      <div>
-        <button type="button" data-post-status="已解决">标记已解决</button>
-      </div>
-    </section>
-  `;
+  return "";
 }
 
 function renderPostDetail() {
@@ -570,10 +561,26 @@ function handlePostAction(action) {
 function setPostStatus(status) {
   const post = activePostId ? ensurePostInteractions(findCommunityPost(activePostId)) : null;
   if (!post || status !== "已解决" || !canManagePostStatus(post)) return;
+  markPostSolved(post);
+  renderPostDetail();
+}
+
+function postIdFromChatId(chatId) {
+  return String(chatId || "").replace(/^DM-/, "");
+}
+
+function findPostForChat(order) {
+  if (!order) return null;
+  return ensurePostInteractions(findCommunityPost(order.postId || postIdFromChatId(order.id)));
+}
+
+function markPostSolved(post) {
+  if (!post || !canManagePostStatus(post)) return false;
   post.status = "已解决";
+  post.solvedAt = new Date().toISOString();
   renderHome();
   renderDiscover();
-  renderPostDetail();
+  return true;
 }
 
 function submitPostReport() {
@@ -610,6 +617,7 @@ function openPostPrivateMessage(post) {
       desc: `来自发现帖子：${post.title}`,
       status: title,
       category: post.category || "chat",
+      postId: post.id,
     });
   }
   if (!chats[chatId]) {
@@ -693,6 +701,7 @@ function renderPrivateChat() {
     renderMessages();
     return;
   }
+  const post = findPostForChat(order);
   const messages = chats[activeChatId] || [];
   $("#screen-messages").innerHTML = `
     <header class="simple-header chat-header">
@@ -707,6 +716,7 @@ function renderPrivateChat() {
         <strong>${order.title}</strong>
         <p>${order.desc}</p>
       </article>
+      ${renderPrivateChatStatusAction(post)}
       ${messages.map((item) => `<div class="private-bubble ${item.role}"><p>${item.text}</p></div>`).join("")}
     </section>
     <section class="private-chat-composer">
@@ -714,6 +724,57 @@ function renderPrivateChat() {
       <button type="button" class="primary-action" id="privateChatSend">发送</button>
     </section>
   `;
+}
+
+function renderPrivateChatStatusAction(post) {
+  if (!post || post.status === "已解决" || !canManagePostStatus(post)) return "";
+  if (post.confirmSolve) {
+    return `
+      <article class="private-chat-status-card confirm">
+        <strong>确认标记为已解决？</strong>
+        <p>确认后帖子会显示“已解决”。如果是帮助者误标，作者可在帖子详情里投诉说明。</p>
+        <div>
+          <button type="button" data-action="cancel-solve-post">取消</button>
+          <button type="button" class="primary-action" data-action="confirm-solve-post">确认已解决</button>
+        </div>
+      </article>
+    `;
+  }
+  return `
+    <article class="private-chat-status-card">
+      <div>
+        <strong>帖子状态：${post.status}</strong>
+        <p>作者和帮助者可在沟通确认后标记已解决。</p>
+      </div>
+      <button type="button" data-action="request-solve-post">标记已解决</button>
+    </article>
+  `;
+}
+
+function requestSolvePost() {
+  const order = orders.find((item) => item.id === activeChatId);
+  const post = findPostForChat(order);
+  if (!post || !canManagePostStatus(post)) return;
+  post.confirmSolve = true;
+  renderPrivateChat();
+}
+
+function cancelSolvePost() {
+  const order = orders.find((item) => item.id === activeChatId);
+  const post = findPostForChat(order);
+  if (!post) return;
+  post.confirmSolve = false;
+  renderPrivateChat();
+}
+
+function confirmSolvePost() {
+  const order = orders.find((item) => item.id === activeChatId);
+  const post = findPostForChat(order);
+  if (!post || !markPostSolved(post)) return;
+  post.confirmSolve = false;
+  chats[activeChatId] = chats[activeChatId] || [];
+  chats[activeChatId].push({ role: "me", text: "我已确认，这个帖子标记为已解决。" });
+  renderPrivateChat();
 }
 
 function openPrivateChat(id) {
@@ -1391,6 +1452,9 @@ function bindEvents() {
     if (action === "send-post-comment") sendPostComment();
     if (action === "submit-post-report") submitPostReport();
     if (action === "cancel-post-report") cancelPostReport();
+    if (action === "request-solve-post") requestSolvePost();
+    if (action === "cancel-solve-post") cancelSolvePost();
+    if (action === "confirm-solve-post") confirmSolvePost();
     if (action === "close-chat") {
       activeChatId = null;
       renderMessages();

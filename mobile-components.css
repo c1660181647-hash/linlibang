@@ -1706,6 +1706,57 @@
   line-height: 1.55;
 }
 
+.private-chat-status-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 20px;
+  background: #fff8ea;
+  box-shadow: var(--shadow-card);
+}
+
+.private-chat-status-card.confirm {
+  display: grid;
+  background: #fff8f5;
+}
+
+.private-chat-status-card strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.private-chat-status-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.private-chat-status-card > button,
+.private-chat-status-card div button {
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: #fffdfc;
+  color: var(--text-primary);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.private-chat-status-card.confirm div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 8px;
+}
+
+.private-chat-status-card.confirm .primary-action {
+  background: var(--text-primary);
+  color: #fffdfc;
+}
+
 .private-bubble {
   display: flex;
 }
