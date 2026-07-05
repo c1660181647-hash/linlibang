@@ -110,7 +110,6 @@ let activeChatId = null;
 const chats = {};
 let activePostId = null;
 const reportUrgencyOptions = ["一般", "紧急", "非常紧急"];
-const postStatusOptions = ["未解决", "已解决", "已过期"];
 const quickTopicSearches = {
   errand: "\u0023\u8dd1\u817f\u4e92\u52a9",
   share: "\u0023\u7269\u54c1\u5171\u4eab",
@@ -459,11 +458,12 @@ function postStatusClass(status) {
 
 function renderPostStatusControls(post) {
   if (!canManagePostStatus(post)) return "";
+  if (post.status === "已解决") return "";
   return `
     <section class="post-status-controls" aria-label="设置帖子状态">
       <strong>帖子状态</strong>
       <div>
-        ${postStatusOptions.map((status) => `<button type="button" class="${post.status === status ? "active" : ""}" data-post-status="${status}">${status}</button>`).join("")}
+        <button type="button" data-post-status="已解决">标记已解决</button>
       </div>
     </section>
   `;
@@ -490,10 +490,8 @@ function renderPostDetail() {
       <button type="button" class="${post.liked ? "active" : ""}" data-post-action="like">点赞 ${post.likes}</button>
       <button type="button" class="${post.favorited ? "active" : ""}" data-post-action="favorite">收藏 ${post.favorites}</button>
       <button type="button" data-post-action="message">${postActionLabel(post)}</button>
-      <button type="button" class="${post.aiChecked ? "active" : ""}" data-post-action="ai-check">AI检查</button>
       <button type="button" class="${post.reported ? "reported" : ""}" data-post-action="report">${post.reported ? "已投诉" : "投诉"}</button>
     </div>
-    ${post.aiCheckReason ? `<p class="post-ai-note">${post.aiCheckReason}</p>` : ""}
     ${renderPostStatusControls(post)}
     ${post.showReportForm ? renderPostReportForm(post) : ""}
     <section class="post-comments" aria-label="评论">
@@ -557,10 +555,6 @@ function handlePostAction(action) {
     openPostPrivateMessage(post);
     return;
   }
-  if (action === "ai-check") {
-    runPostAiCheck(post);
-    return;
-  }
   if (action === "like") {
     post.liked = !post.liked;
     post.likes += post.liked ? 1 : -1;
@@ -573,40 +567,10 @@ function handlePostAction(action) {
   renderPostDetail();
 }
 
-async function runPostAiCheck(post) {
-  try {
-    const response = await fetch("/api/community/posts/check", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ post }),
-    });
-    const result = await response.json();
-    const check = result.check || result;
-    post.status = check.status || post.status || "未解决";
-    post.aiChecked = true;
-    post.aiCheckReason = check.reason || "AI 已完成帖子状态检查。";
-  } catch {
-    post.status = inferLocalPostStatus(post).status;
-    post.aiChecked = true;
-    post.aiCheckReason = "网络暂时不可用，已按本地规则完成检查。";
-  }
-  renderHome();
-  renderDiscover();
-  renderPostDetail();
-}
-
-function inferLocalPostStatus(post) {
-  const text = `${post.title || ""}${post.text || ""}${post.status || ""}`;
-  if (/已解决|解决了|已经解决|已完成|完成了|找到了|已找到|不用了|已处理/.test(text)) return { status: "已解决" };
-  if (/已过期|过期|截止|结束了|来不及/.test(text)) return { status: "已过期" };
-  return { status: "未解决" };
-}
-
 function setPostStatus(status) {
   const post = activePostId ? ensurePostInteractions(findCommunityPost(activePostId)) : null;
-  if (!post || !postStatusOptions.includes(status) || !canManagePostStatus(post)) return;
-  post.status = status;
-  post.aiCheckReason = `状态已由${post.author === profileState.name ? "发布者" : "帮助者"}设置为${status}。`;
+  if (!post || status !== "已解决" || !canManagePostStatus(post)) return;
+  post.status = "已解决";
   renderHome();
   renderDiscover();
   renderPostDetail();

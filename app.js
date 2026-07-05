@@ -127,7 +127,6 @@ let desktopVoicePressing = false;
 let desktopVoiceStopRequested = false;
 let activeDesktopPostId = null;
 const desktopReportUrgencyOptions = ["一般", "紧急", "非常紧急"];
-const desktopPostStatusOptions = ["未解决", "已解决", "已过期"];
 function desktopCategoryLabel(category) {
   if (category === "offer") return "\u5e2e\u52a9";
   if (category === "chat") return "\u90bb\u53cb\u5708";
@@ -643,11 +642,12 @@ function desktopPostStatusClass(status) {
 }
 
 function renderDesktopPostStatusControls(post) {
+  if (post.status === "已解决") return "";
   return `
     <section class="desktop-post-status-controls" aria-label="设置帖子状态">
       <strong>帖子状态</strong>
       <div>
-        ${desktopPostStatusOptions.map((status) => `<button type="button" class="${post.status === status ? "active" : ""}" data-desktop-post-status="${status}">${status}</button>`).join("")}
+        <button type="button" data-desktop-post-status="已解决">标记已解决</button>
       </div>
     </section>
   `;
@@ -772,9 +772,9 @@ async function runDesktopPostAiCheck(post) {
 
 function setDesktopPostStatus(status) {
   const post = activeDesktopPostId ? ensureDesktopPostInteractions(findDesktopPost(activeDesktopPostId)) : null;
-  if (!post || !desktopPostStatusOptions.includes(status)) return;
-  post.status = status;
-  post.aiCheckReason = `状态已设置为${status}。`;
+  if (!post || status !== "已解决") return;
+  post.status = "已解决";
+  post.aiCheckReason = "状态已由作者或帮助者标记为已解决。若存在乱标，作者可通过投诉提交说明。";
   renderDesktopDiscover();
   renderDesktopPostPanel();
 }
