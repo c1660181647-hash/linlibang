@@ -247,22 +247,39 @@ function QuickActionCard(item) {
   `;
 }
 
+function nearbyPostsFromDiscover() {
+  return [...communityPosts]
+    .sort((a, b) => Number(b.id.startsWith("post-")) - Number(a.id.startsWith("post-")) || b.heat - a.heat)
+    .slice(0, 6);
+}
+
+function NearbyAvatar(post) {
+  if (post.avatar) return `<img class="mini-avatar-image" src="${post.avatar}" alt="${post.author}的头像" loading="lazy" />`;
+  return `<span class="mini-avatar" aria-hidden="true">${(post.author || "邻").slice(0, 1)}</span>`;
+}
+
+function nearbyMeta(post) {
+  if (post.source === "manual" || post.source === "assistant" || post.source === "agent") return "刚发布";
+  return post.count || categoryLabel(post.category);
+}
+
 function NearbyPostCard(post) {
-  const visual = post.visual ? `<div class="post-visual visual-${post.visual}" aria-hidden="true"></div>` : `<div class="post-status">${post.meta}</div>`;
+  const meta = nearbyMeta(post);
   return `
-    <article class="nearby-card">
+    <article class="nearby-card" data-open-post="${post.id}" tabindex="0" role="button" aria-label="打开帖子：${post.title}">
       <div class="mini-profile">
-        <span class="mini-avatar avatar-${post.avatar}" aria-hidden="true"></span>
+        ${NearbyAvatar(post)}
         <div>
-          <strong>${post.name}</strong>
+          <strong>${post.author}</strong>
           <small>${post.time}</small>
         </div>
       </div>
+      <strong class="nearby-title">${post.title}</strong>
       <p>${post.text}</p>
-      ${visual}
+      <div class="post-status">${meta}</div>
       <div class="post-foot">
-        <span>${post.tag}</span>
-        <span>${post.meta}</span>
+        <span>${categoryLabel(post.category)}</span>
+        <span>${meta}</span>
       </div>
     </article>
   `;
@@ -276,7 +293,7 @@ function NearbySection() {
         <button type="button" data-action="see-more">查看更多 ${icon("chevron")}</button>
       </div>
       <div class="nearby-scroll">
-        ${data.nearbyPosts.map(NearbyPostCard).join("")}
+        ${nearbyPostsFromDiscover().map(NearbyPostCard).join("")}
       </div>
     </section>
   `;
@@ -805,6 +822,7 @@ function publishManualPost() {
   closeCompose();
   discoverMode = post.category === "chat" ? "chat" : "latest";
   discoverCategory = post.category;
+  renderHome();
   renderDiscover();
   showScreen("discover");
 }
@@ -827,6 +845,7 @@ async function publishAgentTask() {
     closeCompose();
     discoverMode = post.category === "chat" ? "chat" : "latest";
     discoverCategory = post.category;
+    renderHome();
     renderAssistant();
     renderDiscover();
     showScreen("discover");
@@ -1161,6 +1180,7 @@ function publishAssistantPost() {
   pendingAssistantPost = null;
   discoverMode = "latest";
   discoverCategory = postCategory;
+  renderHome();
   renderAssistant();
   renderDiscover();
   showScreen("discover");
