@@ -1387,7 +1387,7 @@
 
 .discover-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   padding: 6px;
   border-radius: 18px;
@@ -1455,12 +1455,26 @@
 }
 
 .discover-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: start;
   gap: 14px;
   padding: 16px;
   transition: box-shadow 180ms ease, transform 180ms ease;
+}
+
+.discover-avatar {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #fff8ea;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  box-shadow: 0 8px 18px rgba(126, 86, 55, 0.14);
+}
+
+.discover-card-body {
+  min-width: 0;
 }
 
 .discover-card.highlight {
@@ -1489,6 +1503,14 @@
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.55;
+}
+
+.discover-card small {
+  display: inline-flex;
+  margin-top: 8px;
+  color: #b45f44;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .discover-card span {
@@ -1819,7 +1841,7 @@
   }
 
   .discover-tabs {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

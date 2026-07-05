@@ -125,10 +125,21 @@ let desktopVoiceRecording = false;
 let desktopVoiceStatusText = "";
 let desktopVoicePressing = false;
 let desktopVoiceStopRequested = false;
+let activeDesktopPostId = null;
+const desktopReportUrgencyOptions = ["一般", "紧急", "非常紧急"];
+function desktopCategoryLabel(category) {
+  if (category === "offer") return "\u5e2e\u52a9";
+  if (category === "chat") return "\u90bb\u53cb\u5708";
+  return "\u6c42\u5e2e\u52a9";
+}
 const desktopPosts = [
-  { id: "seed-1", title: "傍晚散步局", text: "今天 19:30，梧桐步道慢走 30 分钟。", count: "5人感兴趣", author: "阿树", time: "刚刚", heat: 88, category: "offer" },
-  { id: "seed-2", title: "共享工具角", text: "小推车、折叠梯、打气筒今天可借。", count: "4件可用", author: "物业工具柜", time: "1小时前", heat: 76, category: "offer" },
-  { id: "seed-3", title: "邻里问答", text: "谁知道 2 栋快递柜临时密码怎么查？", count: "8条回复", author: "安安", time: "2小时前", heat: 65, category: "ask" },
+  { id: "seed-errand-ask-1", title: "下班前能帮带一件中通快递吗？ #跑腿互助", text: "我今晚 6 点半才能到家，快递站 7 点关门，想请同小区邻居顺手帮带到 6 栋门口，愿意付 8 元辛苦费。", count: "12条回复", author: "王启明", avatar: "https://randomuser.me/api/portraits/men/32.jpg", time: "刚刚", heat: 98, category: "ask" },
+  { id: "seed-errand-offer-1", title: "我在菜鸟驿站附近，可以顺路帮带 #跑腿互助", text: "今天 18:20 从东门菜鸟驿站回 3 栋，轻小件可以顺手带，免费帮忙，备注楼栋和取件码就行。", count: "9人想联系", author: "林晓悦", avatar: "https://randomuser.me/api/portraits/women/44.jpg", time: "18分钟前", heat: 92, category: "offer" },
+  { id: "seed-share-offer-1", title: "折叠小推车今晚可借 #物品共享", text: "家里有一辆承重 60kg 的折叠小推车，搬箱子、拿桶装水都方便，今晚 20:00 前可借，记得当天归还。", count: "6人收藏", author: "陈海宁", avatar: "https://randomuser.me/api/portraits/men/46.jpg", time: "35分钟前", heat: 88, category: "offer" },
+  { id: "seed-chat-1", title: "\u4eca\u665a\u697c\u4e0b\u6842\u82b1\u9999\u597d\u660e\u663e #\u90bb\u53cb\u5708", text: "\u521a\u4ece\u5357\u95e8\u6563\u6b65\u56de\u6765\uff0c\u6842\u82b1\u4e00\u8def\u90fd\u5f88\u9999\u3002\u6709\u6ca1\u6709\u90bb\u5c45\u4e5f\u559c\u6b22\u665a\u4e0a\u7ed5\u5c0f\u533a\u6162\u8d70\uff1f\u53ef\u4ee5\u7ea6\u4e2a\u4e0d\u8d76\u65f6\u95f4\u7684\u6563\u6b65\u5c40\u3002", count: "15\u6761\u8bc4\u8bba", author: "\u6c88\u6e05\u79be", avatar: "https://randomuser.me/api/portraits/women/12.jpg", time: "24\u5206\u949f\u524d", heat: 86, category: "chat" },
+  { id: "seed-share-ask-1", title: "想借一把电钻装窗帘 #物品共享", text: "周六上午想装两根窗帘杆，想借电钻和 6mm 钻头，用完会擦干净还回去，可以带一杯咖啡感谢。", count: "4条回复", author: "赵明远", avatar: "https://randomuser.me/api/portraits/men/75.jpg", time: "1小时前", heat: 81, category: "ask" },
+  { id: "seed-circle-offer-1", title: "周六亲子跳蚤小摊报名 #邻里动态", text: "本周六下午在中心花园摆亲子小摊，旧书、玩具、手作都可以带来，想一起组织的邻居可以留言。", count: "18人感兴趣", author: "刘雨桐", avatar: "https://randomuser.me/api/portraits/women/68.jpg", time: "2小时前", heat: 76, category: "offer" },
+  { id: "seed-circle-ask-1", title: "有人知道北门临时施工几点结束吗？ #邻里动态", text: "孩子午睡被施工声吵醒了，想问问有没有邻居知道今天北门维修大概几点结束，物业电话一直占线。", count: "11条回复", author: "周佳琪", avatar: "https://randomuser.me/api/portraits/women/22.jpg", time: "3小时前", heat: 70, category: "ask" },
 ];
 
 const orderSteps = ["待确认", "已接单", "服务中", "待验收", "已完成", "争议中"];
@@ -586,14 +597,160 @@ function stopDesktopAssistantVoice() {
 }
 
 function getDesktopDiscoverPosts() {
-  const source = desktopPosts.filter((item) => item.category === desktopDiscoverCategory);
+  const source = desktopDiscoverMode === "search" ? desktopPosts : desktopPosts.filter((item) => item.category === (desktopDiscoverMode === "chat" ? "chat" : desktopDiscoverCategory));
   if (desktopDiscoverMode === "latest") return [...source].sort((a, b) => Number(b.id.startsWith("post-")) - Number(a.id.startsWith("post-")) || b.heat - a.heat);
+  if (desktopDiscoverMode === "chat") return [...source].sort((a, b) => b.heat - a.heat);
   if (desktopDiscoverMode === "search") {
     const keyword = desktopDiscoverSearch.trim();
     if (!keyword) return source;
-    return source.filter((item) => `${item.title}${item.text}${item.author}`.includes(keyword));
+    const normalizedKeyword = keyword.replace(/^#+/, "");
+    return source.filter((item) => {
+      const haystack = `${item.title}${item.text}${item.author}`;
+      return haystack.includes(keyword) || haystack.includes(normalizedKeyword);
+    });
   }
   return [...source].sort((a, b) => b.heat - a.heat);
+}
+
+function findDesktopPost(id) {
+  return desktopPosts.find((item) => item.id === id);
+}
+
+function ensureDesktopPostInteractions(post) {
+  if (!post) return null;
+  if (!post.comments) {
+    post.comments = [
+      { author: "孙嘉禾", text: post.category === "ask" ? "我看到了，时间合适的话可以帮你留意。" : "这个很实用，我先收藏一下。" },
+      { author: "何雅雯", text: "已私信你，具体楼栋和时间我们再确认。" },
+    ];
+  }
+  post.likes = post.likes ?? Math.max(3, Math.round(post.heat / 12));
+  post.favorites = post.favorites ?? Math.max(1, Math.round(post.heat / 20));
+  post.liked = Boolean(post.liked);
+  post.favorited = Boolean(post.favorited);
+  post.reported = Boolean(post.reported);
+  post.showReportForm = Boolean(post.showReportForm);
+  return post;
+}
+
+function renderDesktopPostPanel() {
+  const panel = $("#desktopPostPanel");
+  if (!panel || !activeDesktopPostId) return;
+  const post = ensureDesktopPostInteractions(findDesktopPost(activeDesktopPostId));
+  if (!post) return;
+  panel.innerHTML = `
+    <div class="desktop-post-head">
+      <img class="desktop-discover-avatar" src="${post.avatar || "https://randomuser.me/api/portraits/lego/1.jpg"}" alt="${post.author}的头像" />
+      <div>
+        <p>${post.author} · ${post.time}</p>
+        <h3>${post.title}</h3>
+      </div>
+      <button type="button" class="desktop-post-close" data-desktop-post-close aria-label="关闭帖子详情">×</button>
+    </div>
+    <p class="desktop-post-text">${post.text}</p>
+    <div class="desktop-post-actions">
+      <button type="button" class="${post.liked ? "active" : ""}" data-desktop-post-action="like">点赞 ${post.likes}</button>
+      <button type="button" class="${post.favorited ? "active" : ""}" data-desktop-post-action="favorite">收藏 ${post.favorites}</button>
+      <button type="button" class="${post.reported ? "reported" : ""}" data-desktop-post-action="report">${post.reported ? "已投诉" : "投诉"}</button>
+    </div>
+    ${post.showReportForm ? renderDesktopPostReportForm(post) : ""}
+    <section class="desktop-post-comments">
+      <h4>评论</h4>
+      ${post.comments.map((comment) => `<div><strong>${comment.author}</strong><p>${comment.text}</p></div>`).join("")}
+    </section>
+    <div class="desktop-post-comment-box">
+      <input id="desktopPostCommentInput" type="text" maxlength="80" placeholder="写一句友善的评论" />
+      <button type="button" data-desktop-post-comment>发送</button>
+    </div>
+  `;
+}
+
+function renderDesktopPostReportForm(post) {
+  const selectedUrgency = post.reportDraft?.urgency || desktopReportUrgencyOptions[0];
+  return `
+    <section class="desktop-post-report-box" aria-label="填写投诉内容">
+      <div class="desktop-post-report-title">
+        <strong>投诉内容</strong>
+        <button type="button" data-desktop-post-report-cancel>取消</button>
+      </div>
+      <textarea id="desktopPostReportContent" rows="3" maxlength="180" placeholder="请描述你遇到的问题，平台会结合帖子内容一起处理。">${post.reportDraft?.content || ""}</textarea>
+      <div class="desktop-post-report-levels" role="radiogroup" aria-label="紧急级别">
+        ${desktopReportUrgencyOptions
+          .map(
+            (level) => `
+              <label>
+                <input type="radio" name="desktopPostReportUrgency" value="${level}" ${selectedUrgency === level ? "checked" : ""} />
+                <span>${level}</span>
+              </label>
+            `
+          )
+          .join("")}
+      </div>
+      <button type="button" class="primary-button" data-desktop-post-report-submit>提交投诉</button>
+    </section>
+  `;
+}
+
+function openDesktopPost(id) {
+  const post = findDesktopPost(id);
+  if (!post) return;
+  activeDesktopPostId = id;
+  renderDesktopPostPanel();
+  $("#desktopPostOverlay")?.classList.add("open");
+  $("#desktopPostPanel")?.classList.add("open");
+}
+
+function closeDesktopPost() {
+  activeDesktopPostId = null;
+  $("#desktopPostOverlay")?.classList.remove("open");
+  $("#desktopPostPanel")?.classList.remove("open");
+}
+
+function handleDesktopPostAction(action) {
+  const post = activeDesktopPostId ? ensureDesktopPostInteractions(findDesktopPost(activeDesktopPostId)) : null;
+  if (!post) return;
+  if (action === "like") {
+    post.liked = !post.liked;
+    post.likes += post.liked ? 1 : -1;
+  }
+  if (action === "favorite") {
+    post.favorited = !post.favorited;
+    post.favorites += post.favorited ? 1 : -1;
+  }
+  if (action === "report") post.showReportForm = true;
+  renderDesktopPostPanel();
+}
+
+function submitDesktopPostReport() {
+  const post = activeDesktopPostId ? ensureDesktopPostInteractions(findDesktopPost(activeDesktopPostId)) : null;
+  if (!post) return;
+  const content = $("#desktopPostReportContent")?.value.trim();
+  const urgency = document.querySelector('input[name="desktopPostReportUrgency"]:checked')?.value || desktopReportUrgencyOptions[0];
+  if (!content) {
+    $("#desktopPostReportContent")?.focus();
+    return;
+  }
+  post.reported = true;
+  post.showReportForm = false;
+  post.reportDraft = { content, urgency };
+  post.comments.unshift({ author: "系统", text: `已收到投诉：${urgency}。平台会尽快核实。` });
+  renderDesktopPostPanel();
+}
+
+function cancelDesktopPostReport() {
+  const post = activeDesktopPostId ? ensureDesktopPostInteractions(findDesktopPost(activeDesktopPostId)) : null;
+  if (!post) return;
+  post.showReportForm = false;
+  renderDesktopPostPanel();
+}
+
+function sendDesktopPostComment() {
+  const post = activeDesktopPostId ? ensureDesktopPostInteractions(findDesktopPost(activeDesktopPostId)) : null;
+  const input = $("#desktopPostCommentInput");
+  const text = input?.value.trim();
+  if (!post || !text) return;
+  post.comments.push({ author: "小赵", text });
+  renderDesktopPostPanel();
 }
 
 function renderDesktopDiscover() {
@@ -608,11 +765,14 @@ function renderDesktopDiscover() {
     ? posts
         .map(
           (post) => `
-            <article class="desktop-discover-card">
-              <p>${post.author} · ${post.time}</p>
-              <h3>${post.title}</h3>
-              <span>${post.text}</span>
-              <strong>${post.category === "offer" ? "帮助" : "求帮助"} · ${post.count}</strong>
+            <article class="desktop-discover-card" data-desktop-open-post="${post.id}" tabindex="0" role="button" aria-label="打开帖子：${post.title}">
+              <img class="desktop-discover-avatar" src="${post.avatar || "https://randomuser.me/api/portraits/lego/1.jpg"}" alt="${post.author}的头像" loading="lazy" />
+              <div>
+                <p>${post.author} · ${post.time}</p>
+                <h3>${post.title}</h3>
+                <span>${post.text}</span>
+                <strong>${desktopCategoryLabel(post.category)} · ${post.count}</strong>
+              </div>
             </article>
           `
         )
@@ -914,6 +1074,31 @@ function initEvents() {
     desktopDiscoverSearch = event.target.value;
     renderDesktopDiscover();
   });
+  $("#desktopDiscoverList")?.addEventListener("click", (event) => {
+    const card = event.target.closest("[data-desktop-open-post]");
+    if (!card) return;
+    openDesktopPost(card.dataset.desktopOpenPost);
+  });
+  $("#desktopDiscoverList")?.addEventListener("keydown", (event) => {
+    const card = event.target.closest("[data-desktop-open-post]");
+    if (!card || (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    openDesktopPost(card.dataset.desktopOpenPost);
+  });
+  $("#desktopPostPanel")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-desktop-post-close]")) closeDesktopPost();
+    const actionButton = event.target.closest("[data-desktop-post-action]");
+    if (actionButton) handleDesktopPostAction(actionButton.dataset.desktopPostAction);
+    if (event.target.closest("[data-desktop-post-report-submit]")) submitDesktopPostReport();
+    if (event.target.closest("[data-desktop-post-report-cancel]")) cancelDesktopPostReport();
+    if (event.target.closest("[data-desktop-post-comment]")) sendDesktopPostComment();
+  });
+  $("#desktopPostPanel")?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.target?.id !== "desktopPostCommentInput") return;
+    event.preventDefault();
+    sendDesktopPostComment();
+  });
+  $("#desktopPostOverlay")?.addEventListener("click", closeDesktopPost);
   $$(".discover-tabs button").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.discoverMode) desktopDiscoverMode = button.dataset.discoverMode;

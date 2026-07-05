@@ -221,41 +221,6 @@ svg {
   font-weight: 700;
 }
 
-.device-switcher {
-  position: fixed;
-  right: 16px;
-  bottom: calc(92px + env(safe-area-inset-bottom));
-  z-index: 21;
-  display: inline-flex;
-  gap: 4px;
-  padding: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.88);
-  border-radius: 999px;
-  background: rgba(255, 252, 247, 0.94);
-  box-shadow: 0 12px 30px rgba(126, 86, 55, 0.16);
-  backdrop-filter: blur(16px);
-}
-
-.device-switcher a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 800;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.device-switcher a.active {
-  background: linear-gradient(145deg, #ffca45, #ff9f87);
-  color: #fffdfc;
-  box-shadow: 0 8px 18px rgba(255, 159, 135, 0.22);
-}
-
 .publish-tab {
   transform: translateY(-18px);
 }
@@ -290,7 +255,8 @@ svg {
 }
 
 .compose-sheet,
-.profile-sheet {
+.profile-sheet,
+.post-detail-sheet {
   position: fixed;
   right: 0;
   bottom: 0;
@@ -310,7 +276,8 @@ svg {
 }
 
 .compose-sheet.open,
-.profile-sheet.open {
+.profile-sheet.open,
+.post-detail-sheet.open {
   transform: translateY(0);
 }
 
@@ -377,6 +344,158 @@ textarea {
 
 .profile-sheet {
   gap: 16px;
+}
+
+.post-detail-sheet {
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.post-detail-head {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 40px;
+  gap: 12px;
+  align-items: start;
+}
+
+.post-detail-head p,
+.post-detail-text,
+.post-comment p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.post-detail-head h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.post-detail-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.post-detail-actions button,
+.post-comment-box button {
+  min-height: 40px;
+  border-radius: 999px;
+  background: #fff8ea;
+  color: var(--text-primary);
+  font-weight: 800;
+}
+
+.post-detail-actions button.active {
+  background: linear-gradient(145deg, #ffca45, #ff9f87);
+  color: #fffdfc;
+}
+
+.post-detail-actions button.reported {
+  background: #f3ebe2;
+  color: var(--text-secondary);
+}
+
+.post-report-box {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(240, 90, 80, 0.18);
+  border-radius: 18px;
+  background: #fff8f5;
+}
+
+.post-report-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.post-report-title strong {
+  font-size: 15px;
+}
+
+.post-report-title button {
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: #f3ebe2;
+  color: var(--text-secondary);
+  font-weight: 800;
+}
+
+.post-report-box textarea {
+  min-height: 92px;
+  border-radius: 16px;
+  background: #fffdfc;
+}
+
+.post-report-levels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.post-report-levels label {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 38px;
+  border-radius: 999px;
+  background: #fffdfc;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.post-report-levels label:has(input:checked) {
+  background: linear-gradient(145deg, #ffca45, #ff9f87);
+  color: #fffdfc;
+}
+
+.post-report-levels input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.post-comments {
+  display: grid;
+  gap: 10px;
+}
+
+.post-comments h3 {
+  margin: 0;
+}
+
+.post-comment {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--bg-soft);
+}
+
+.post-comment strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.post-comment-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 8px;
+}
+
+.post-comment-box input {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  outline: none;
+  background: #fff9f1;
+  color: var(--text-primary);
+  font: inherit;
 }
 
 .profile-editor-preview {
@@ -476,11 +595,18 @@ textarea {
 .compose-mode,
 .compose-type {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   padding: 6px;
   border-radius: 18px;
   background: var(--bg-soft);
+}
+
+.compose-mode {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compose-type {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .compose-mode button,
@@ -557,13 +683,9 @@ textarea {
     padding-inline: 18px;
   }
 
-  .device-switcher {
-    right: max(32px, calc((100vw - 1120px) / 2 + 32px));
-    bottom: calc(106px + env(safe-area-inset-bottom));
-  }
-
   .compose-sheet,
-  .profile-sheet {
+  .profile-sheet,
+  .post-detail-sheet {
     width: min(calc(100% - 96px), 720px);
   }
 }

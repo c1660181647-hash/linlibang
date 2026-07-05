@@ -19,20 +19,108 @@ let discoverCategory = "ask";
 let discoverSearch = "";
 let composeMode = "manual";
 let composeCategory = "ask";
-const communityPosts = data.discoverCards.map((item, index) => ({
-  id: `seed-${index}`,
-  title: item.title,
-  text: item.text,
-  count: item.count,
-  author: index === 0 ? "阿树" : index === 1 ? "物业工具柜" : "安安",
-  time: index === 0 ? "刚刚" : `${index + 1}小时前`,
-  heat: 88 - index * 13,
-  source: "seed",
-  category: index === 1 ? "offer" : "ask",
-}));
+const communityPosts = [
+  {
+    id: "seed-errand-ask-1",
+    title: "下班前能帮带一件中通快递吗？ #跑腿互助",
+    text: "我今晚 6 点半才能到家，快递站 7 点关门，想请同小区邻居顺手帮带到 6 栋门口，愿意付 8 元辛苦费。",
+    count: "12条回复",
+    author: "王启明",
+    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+    time: "刚刚",
+    heat: 98,
+    source: "seed",
+    category: "ask",
+  },
+  {
+    id: "seed-errand-offer-1",
+    title: "我在菜鸟驿站附近，可以顺路帮带 #跑腿互助",
+    text: "今天 18:20 从东门菜鸟驿站回 3 栋，轻小件可以顺手带，免费帮忙，备注楼栋和取件码就行。",
+    count: "9人想联系",
+    author: "林晓悦",
+    avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+    time: "18分钟前",
+    heat: 92,
+    source: "seed",
+    category: "offer",
+  },
+  {
+    id: "seed-share-offer-1",
+    title: "折叠小推车今晚可借 #物品共享",
+    text: "家里有一辆承重 60kg 的折叠小推车，搬箱子、拿桶装水都方便，今晚 20:00 前可借，记得当天归还。",
+    count: "6人收藏",
+    author: "陈海宁",
+    avatar: "https://randomuser.me/api/portraits/men/46.jpg",
+    time: "35分钟前",
+    heat: 88,
+    source: "seed",
+    category: "offer",
+  },
+  {
+    id: "seed-chat-1",
+    title: "\u4eca\u665a\u697c\u4e0b\u6842\u82b1\u9999\u597d\u660e\u663e #\u90bb\u53cb\u5708",
+    text: "\u521a\u4ece\u5357\u95e8\u6563\u6b65\u56de\u6765\uff0c\u6842\u82b1\u4e00\u8def\u90fd\u5f88\u9999\u3002\u6709\u6ca1\u6709\u90bb\u5c45\u4e5f\u559c\u6b22\u665a\u4e0a\u7ed5\u5c0f\u533a\u6162\u8d70\uff1f\u53ef\u4ee5\u7ea6\u4e2a\u4e0d\u8d76\u65f6\u95f4\u7684\u6563\u6b65\u5c40\u3002",
+    count: "15\u6761\u8bc4\u8bba",
+    author: "\u6c88\u6e05\u79be",
+    avatar: "https://randomuser.me/api/portraits/women/12.jpg",
+    time: "24\u5206\u949f\u524d",
+    heat: 86,
+    source: "seed",
+    category: "chat",
+  },
+  {
+    id: "seed-share-ask-1",
+    title: "想借一把电钻装窗帘 #物品共享",
+    text: "周六上午想装两根窗帘杆，想借电钻和 6mm 钻头，用完会擦干净还回去，可以带一杯咖啡感谢。",
+    count: "4条回复",
+    author: "赵明远",
+    avatar: "https://randomuser.me/api/portraits/men/75.jpg",
+    time: "1小时前",
+    heat: 81,
+    source: "seed",
+    category: "ask",
+  },
+  {
+    id: "seed-circle-offer-1",
+    title: "周六亲子跳蚤小摊报名 #邻里动态",
+    text: "本周六下午在中心花园摆亲子小摊，旧书、玩具、手作都可以带来，想一起组织的邻居可以留言。",
+    count: "18人感兴趣",
+    author: "刘雨桐",
+    avatar: "https://randomuser.me/api/portraits/women/68.jpg",
+    time: "2小时前",
+    heat: 76,
+    source: "seed",
+    category: "offer",
+  },
+  {
+    id: "seed-circle-ask-1",
+    title: "有人知道北门临时施工几点结束吗？ #邻里动态",
+    text: "孩子午睡被施工声吵醒了，想问问有没有邻居知道今天北门维修大概几点结束，物业电话一直占线。",
+    count: "11条回复",
+    author: "周佳琪",
+    avatar: "https://randomuser.me/api/portraits/women/22.jpg",
+    time: "3小时前",
+    heat: 70,
+    source: "seed",
+    category: "ask",
+  },
+];
 let messageMode = "all";
 let activeChatId = null;
 const chats = {};
+let activePostId = null;
+const reportUrgencyOptions = ["一般", "紧急", "非常紧急"];
+const quickTopicSearches = {
+  errand: "\u0023\u8dd1\u817f\u4e92\u52a9",
+  share: "\u0023\u7269\u54c1\u5171\u4eab",
+  circle: "\u0023\u90bb\u91cc\u52a8\u6001",
+};
+
+function categoryLabel(category) {
+  if (category === "offer") return "\u5e2e\u52a9";
+  if (category === "chat") return "\u90bb\u53cb\u5708";
+  return "\u6c42\u5e2e\u52a9";
+}
 let voiceRecognition = null;
 let isRecordingVoice = false;
 let voiceStatusText = "";
@@ -266,6 +354,7 @@ function renderDiscover() {
       <div class="discover-tabs" role="tablist" aria-label="发现筛选">
         <button type="button" class="${discoverMode === "hot" ? "active" : ""}" data-discover-mode="hot">热门</button>
         <button type="button" class="${discoverMode === "latest" ? "active" : ""}" data-discover-mode="latest">最新</button>
+        <button type="button" class="${discoverMode === "chat" ? "active" : ""}" data-discover-mode="chat">邻友圈</button>
         <button type="button" class="${discoverMode === "search" ? "active" : ""}" data-discover-mode="search">搜索</button>
       </div>
       <div class="discover-tabs sub-tabs" role="tablist" aria-label="互助分类">
@@ -279,13 +368,15 @@ function renderDiscover() {
         ? posts
             .map(
               (item) => `
-            <article class="discover-card">
-              <div>
+            <article class="discover-card" data-open-post="${item.id}" tabindex="0" role="button" aria-label="打开帖子：${item.title}">
+              <img class="discover-avatar" src="${item.avatar || "https://randomuser.me/api/portraits/lego/1.jpg"}" alt="${item.author}的头像" loading="lazy" />
+              <div class="discover-card-body">
                 <p>${item.author} · ${item.time}</p>
                 <h2>${item.title}</h2>
                 <p>${item.text}</p>
+                <small>${item.count}</small>
               </div>
-              <span>${item.category === "offer" ? "帮助" : "求帮助"}</span>
+              <span>${categoryLabel(item.category)}</span>
             </article>
           `
             )
@@ -302,6 +393,177 @@ function renderDiscover() {
       </div>
     </section>
   `;
+}
+
+function findCommunityPost(id) {
+  return communityPosts.find((item) => item.id === id);
+}
+
+function ensurePostInteractions(post) {
+  if (!post) return null;
+  if (!post.comments) {
+    post.comments = [
+      { author: "孙嘉禾", text: post.category === "ask" ? "我看到了，时间合适的话可以帮你留意。" : "这个很实用，我先收藏一下。" },
+      { author: "何雅雯", text: "已私信你，具体楼栋和时间我们再确认。" },
+    ];
+  }
+  post.likes = post.likes ?? Math.max(3, Math.round(post.heat / 12));
+  post.favorites = post.favorites ?? Math.max(1, Math.round(post.heat / 20));
+  post.liked = Boolean(post.liked);
+  post.favorited = Boolean(post.favorited);
+  post.reported = Boolean(post.reported);
+  post.showReportForm = Boolean(post.showReportForm);
+  return post;
+}
+
+function renderPostDetail() {
+  const sheet = $("#postDetailSheet");
+  if (!sheet || !activePostId) return;
+  const post = ensurePostInteractions(findCommunityPost(activePostId));
+  if (!post) return;
+  sheet.innerHTML = `
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="post-detail-head">
+      <img class="discover-avatar" src="${post.avatar || "https://randomuser.me/api/portraits/lego/1.jpg"}" alt="${post.author}的头像" />
+      <div>
+        <p>${post.author} · ${post.time}</p>
+        <h2>${post.title}</h2>
+      </div>
+      <button type="button" class="round-close" data-action="close-post-detail" aria-label="关闭帖子详情">×</button>
+    </div>
+    <p class="post-detail-text">${post.text}</p>
+    <div class="post-detail-actions">
+      <button type="button" class="${post.liked ? "active" : ""}" data-post-action="like">点赞 ${post.likes}</button>
+      <button type="button" class="${post.favorited ? "active" : ""}" data-post-action="favorite">收藏 ${post.favorites}</button>
+      <button type="button" data-post-action="message">私信</button>
+      <button type="button" class="${post.reported ? "reported" : ""}" data-post-action="report">${post.reported ? "已投诉" : "投诉"}</button>
+    </div>
+    ${post.showReportForm ? renderPostReportForm(post) : ""}
+    <section class="post-comments" aria-label="评论">
+      <h3>评论</h3>
+      ${post.comments.map((comment) => `<div class="post-comment"><strong>${comment.author}</strong><p>${comment.text}</p></div>`).join("")}
+    </section>
+    <div class="post-comment-box">
+      <input id="postCommentInput" type="text" maxlength="80" placeholder="写一句友善的评论" />
+      <button type="button" data-action="send-post-comment">发送</button>
+    </div>
+  `;
+}
+
+function renderPostReportForm(post) {
+  const selectedUrgency = post.reportDraft?.urgency || reportUrgencyOptions[0];
+  return `
+    <section class="post-report-box" aria-label="填写投诉内容">
+      <div class="post-report-title">
+        <strong>投诉内容</strong>
+        <button type="button" data-action="cancel-post-report">取消</button>
+      </div>
+      <textarea id="postReportContent" rows="3" maxlength="180" placeholder="请描述你遇到的问题，平台会结合帖子内容一起处理。">${post.reportDraft?.content || ""}</textarea>
+      <div class="post-report-levels" role="radiogroup" aria-label="紧急级别">
+        ${reportUrgencyOptions
+          .map(
+            (level) => `
+              <label>
+                <input type="radio" name="postReportUrgency" value="${level}" ${selectedUrgency === level ? "checked" : ""} />
+                <span>${level}</span>
+              </label>
+            `
+          )
+          .join("")}
+      </div>
+      <button type="button" class="primary-action" data-action="submit-post-report">提交投诉</button>
+    </section>
+  `;
+}
+
+function openPostDetail(id) {
+  const post = findCommunityPost(id);
+  if (!post) return;
+  activePostId = id;
+  renderPostDetail();
+  $("#postDetailSheet")?.classList.add("open");
+  $("#sheetBackdrop")?.classList.add("open");
+}
+
+function closePostDetail() {
+  activePostId = null;
+  $("#postDetailSheet")?.classList.remove("open");
+  if (!$("#composeSheet")?.classList.contains("open") && !$("#profileSheet")?.classList.contains("open")) {
+    $("#sheetBackdrop")?.classList.remove("open");
+  }
+}
+
+function handlePostAction(action) {
+  const post = activePostId ? ensurePostInteractions(findCommunityPost(activePostId)) : null;
+  if (!post) return;
+  if (action === "message") {
+    openPostPrivateMessage(post);
+    return;
+  }
+  if (action === "like") {
+    post.liked = !post.liked;
+    post.likes += post.liked ? 1 : -1;
+  }
+  if (action === "favorite") {
+    post.favorited = !post.favorited;
+    post.favorites += post.favorited ? 1 : -1;
+  }
+  if (action === "report") post.showReportForm = true;
+  renderPostDetail();
+}
+
+function submitPostReport() {
+  const post = activePostId ? ensurePostInteractions(findCommunityPost(activePostId)) : null;
+  if (!post) return;
+  const content = $("#postReportContent")?.value.trim();
+  const urgency = document.querySelector('input[name="postReportUrgency"]:checked')?.value || reportUrgencyOptions[0];
+  if (!content) {
+    $("#postReportContent")?.focus();
+    return;
+  }
+  post.reported = true;
+  post.showReportForm = false;
+  post.reportDraft = { content, urgency };
+  post.comments.unshift({ author: "系统", text: `已收到投诉：${urgency}。平台会尽快核实。` });
+  renderPostDetail();
+}
+
+function cancelPostReport() {
+  const post = activePostId ? ensurePostInteractions(findCommunityPost(activePostId)) : null;
+  if (!post) return;
+  post.showReportForm = false;
+  renderPostDetail();
+}
+
+function openPostPrivateMessage(post) {
+  const chatId = `DM-${post.id}`;
+  if (!orders.some((item) => item.id === chatId)) {
+    orders.unshift({
+      id: chatId,
+      title: `私信 ${post.author}`,
+      desc: `来自发现帖子：${post.title}`,
+      status: "私信",
+      category: post.category || "chat",
+    });
+  }
+  if (!chats[chatId]) {
+    chats[chatId] = [
+      { role: "neighbor", text: `你好，我是${post.author}，关于这条帖子可以直接和我聊。` },
+    ];
+  }
+  closePostDetail();
+  activeChatId = chatId;
+  renderMessages();
+  showScreen("messages");
+}
+
+function sendPostComment() {
+  const post = activePostId ? ensurePostInteractions(findCommunityPost(activePostId)) : null;
+  const input = $("#postCommentInput");
+  const text = input?.value.trim();
+  if (!post || !text) return;
+  post.comments.push({ author: profileState.name || "我", text });
+  renderPostDetail();
 }
 
 function ToolItem(tool) {
@@ -493,7 +755,7 @@ function updateMobileAssistantSheet() {
   if (composeMode === "manual") {
     sheet.innerHTML = `
       <div>
-        <strong>${composeCategory === "ask" ? "手动发布求帮助" : "手动发布帮助"}</strong>
+        <strong>手动发布${categoryLabel(composeCategory)}</strong>
         <span>你填写的内容会直接同步到发现页，也会生成一条消息记录。</span>
       </div>
     `;
@@ -524,7 +786,7 @@ function publishManualPost() {
   if (!text) return;
   const post = {
     id: `post-${Date.now()}`,
-    title: composeCategory === "ask" ? "邻里求帮助" : "我可以帮助",
+    title: composeCategory === "chat" ? "邻友圈动态" : composeCategory === "ask" ? "邻里求帮助" : "我可以帮助",
     text,
     count: "等待回应",
     author: profileState.name,
@@ -534,9 +796,9 @@ function publishManualPost() {
     source: "manual",
   };
   communityPosts.unshift(post);
-  createOrderFromTask({ title: post.title, desc: post.text, category: post.category }, false);
+  if (post.category !== "chat") createOrderFromTask({ title: post.title, desc: post.text, category: post.category }, false);
   closeCompose();
-  discoverMode = "latest";
+  discoverMode = post.category === "chat" ? "chat" : "latest";
   discoverCategory = post.category;
   renderDiscover();
   showScreen("discover");
@@ -555,10 +817,10 @@ async function publishAgentTask() {
     const result = await response.json();
     const post = buildPostFromAssistant(result, text);
     communityPosts.unshift({ ...post, id: `post-${Date.now()}`, source: "agent" });
-    createOrderFromTask({ title: post.title, desc: post.text, category: post.category }, false);
+    if (post.category !== "chat") createOrderFromTask({ title: post.title, desc: post.text, category: post.category }, false);
     assistantMessages.push({ role: "assistant", text: result.reply || "我已经帮你整理并发布到发现页。" });
     closeCompose();
-    discoverMode = "latest";
+    discoverMode = post.category === "chat" ? "chat" : "latest";
     discoverCategory = post.category;
     renderAssistant();
     renderDiscover();
@@ -569,12 +831,17 @@ async function publishAgentTask() {
 }
 
 function getDiscoverPosts() {
-  const source = communityPosts.filter((item) => item.category === discoverCategory);
+  const source = discoverMode === "search" ? communityPosts : communityPosts.filter((item) => item.category === (discoverMode === "chat" ? "chat" : discoverCategory));
   if (discoverMode === "latest") return [...source].sort((a, b) => Number(b.id.startsWith("post-")) - Number(a.id.startsWith("post-")) || b.heat - a.heat);
+  if (discoverMode === "chat") return [...source].sort((a, b) => b.heat - a.heat);
   if (discoverMode === "search") {
     const keyword = discoverSearch.trim();
     if (!keyword) return source;
-    return source.filter((item) => `${item.title}${item.text}${item.author}`.includes(keyword));
+    const normalizedKeyword = keyword.replace(/^#+/, "");
+    return source.filter((item) => {
+      const haystack = `${item.title}${item.text}${item.author}`;
+      return haystack.includes(keyword) || haystack.includes(normalizedKeyword);
+    });
   }
   return [...source].sort((a, b) => b.heat - a.heat);
 }
@@ -990,6 +1257,12 @@ function borrowTool(id) {
 
 function bindEvents() {
   document.body.addEventListener("click", (event) => {
+    const postCard = event.target.closest("[data-open-post]");
+    if (postCard && !event.target.closest("button")) {
+      openPostDetail(postCard.dataset.openPost);
+      return;
+    }
+
     const button = event.target.closest("button");
     if (!button) return;
 
@@ -1025,6 +1298,10 @@ function bindEvents() {
     const quickId = button.dataset.quickId;
     if (quickId) {
       const item = data.quickActions.find((entry) => entry.id === quickId);
+      if (quickTopicSearches[quickId]) {
+        showSearchPlaceholder(quickTopicSearches[quickId]);
+        return;
+      }
       if (item?.compose) openCompose();
       if (item?.target) showScreen(item.target);
     }
@@ -1039,11 +1316,16 @@ function bindEvents() {
     if (action === "borrow-first") borrowTool("tool-1");
     if (action === "simulate-order") createOrderFromTask({ title: "周六散步局提醒", desc: "阿树邀请你加入 19:30 的河堤散步局。", category: "offer" });
     if (action === "create-order") createOrderFromTask();
+    if (action === "close-post-detail") closePostDetail();
+    if (action === "send-post-comment") sendPostComment();
+    if (action === "submit-post-report") submitPostReport();
+    if (action === "cancel-post-report") cancelPostReport();
     if (action === "close-chat") {
       activeChatId = null;
       renderMessages();
     }
 
+    if (button.dataset.postAction) handlePostAction(button.dataset.postAction);
     if (button.dataset.borrowId) borrowTool(button.dataset.borrowId);
     if (button.dataset.nextOrder) button.textContent = "已读";
     if (button.dataset.openChat) openPrivateChat(button.dataset.openChat);
@@ -1091,9 +1373,22 @@ function bindEvents() {
   });
 
   document.body.addEventListener("keydown", (event) => {
+    const postCard = event.target.closest?.("[data-open-post]");
+    if (postCard && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      openPostDetail(postCard.dataset.openPost);
+      return;
+    }
+
     if (event.key !== "Enter" || event.target?.id !== "assistantInput") return;
     event.preventDefault();
     sendAssistantMessage(event.target.value);
+  });
+
+  document.body.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.target?.id !== "postCommentInput") return;
+    event.preventDefault();
+    sendPostComment();
   });
 
   document.body.addEventListener("keydown", (event) => {
@@ -1116,6 +1411,7 @@ function bindEvents() {
   $("#sheetBackdrop").addEventListener("click", () => {
     closeCompose();
     closeProfileEditor();
+    closePostDetail();
   });
 
   $("#avatarInput").addEventListener("change", (event) => {
@@ -1138,10 +1434,16 @@ function bindEvents() {
   });
 }
 
-function showSearchPlaceholder() {
+function showSearchPlaceholder(keyword = "") {
   discoverMode = "search";
+  discoverSearch = keyword;
   showScreen("discover");
   renderDiscover();
+  const search = $("#discoverSearch");
+  if (search) {
+    search.focus();
+    search.setSelectionRange(search.value.length, search.value.length);
+  }
   const first = $("#screen-discover .discover-card");
   if (first) {
     first.classList.add("highlight");

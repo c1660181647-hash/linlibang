@@ -186,6 +186,7 @@
             <div class="discover-tabs">
               <button class="active" data-discover-mode="hot" type="button">热门</button>
               <button data-discover-mode="latest" type="button">最新</button>
+              <button data-discover-mode="chat" type="button">邻友圈</button>
               <button data-discover-mode="search" type="button">搜索</button>
             </div>
             <div class="discover-tabs sub-tabs">
@@ -231,10 +232,8 @@
       </div>
     </template>
 
-    <div class="device-switcher" aria-label="&#31471;&#20999;&#25442;">
-      <a href="./mobile.html">&#25163;&#26426;&#31471;</a>
-      <a class="active" href="./index.html">&#30005;&#33041;&#31471;</a>
-    </div>
+    <div class="desktop-post-overlay" id="desktopPostOverlay" aria-hidden="true"></div>
+    <aside class="desktop-post-panel" id="desktopPostPanel" aria-label="帖子详情" aria-live="polite"></aside>
 
     <script src="./app.js"></script>
   </body>
