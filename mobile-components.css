@@ -1540,10 +1540,42 @@
 
 .discover-card small {
   display: inline-flex;
-  margin-top: 8px;
   color: #b45f44;
   font-size: 12px;
   font-weight: 800;
+}
+
+.discover-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.post-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.post-status-pill.open {
+  background: #fff1bf;
+  color: #80651c;
+}
+
+.post-status-pill.solved {
+  background: #5f9f63;
+  color: #fffdfc;
+}
+
+.post-status-pill.expired {
+  background: #8f8478;
+  color: #fffdfc;
 }
 
 .discover-card span {

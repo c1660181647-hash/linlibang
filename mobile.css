@@ -397,14 +397,22 @@ textarea {
   color: var(--text-secondary);
 }
 
+.post-detail-actions button.disabled,
+.post-detail-actions button:disabled {
+  background: #eee7dd;
+  color: #aaa096;
+  cursor: not-allowed;
+}
+
 .post-status-badge {
   display: inline-flex;
   width: fit-content;
   margin-top: 8px;
-  padding: 5px 9px;
+  padding: 7px 11px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
+  box-shadow: 0 8px 18px rgba(126, 86, 55, 0.1);
 }
 
 .post-status-badge.open {
@@ -413,13 +421,13 @@ textarea {
 }
 
 .post-status-badge.solved {
-  background: #ddf2d7;
-  color: #5f7e52;
+  background: #5f9f63;
+  color: #fffdfc;
 }
 
 .post-status-badge.expired {
-  background: #f3ebe2;
-  color: var(--text-secondary);
+  background: #8f8478;
+  color: #fffdfc;
 }
 
 .post-report-box {

@@ -263,6 +263,13 @@ function nearbyMeta(post) {
   return post.count || categoryLabel(post.category);
 }
 
+function postContactText(post) {
+  const count = Number(post.contactCount || 0);
+  if (post.category === "ask") return `${count}人想帮助`;
+  if (post.category === "offer") return `${count}次邀请帮助`;
+  return post.count || "等待互动";
+}
+
 function NearbyPostCard(post) {
   const meta = nearbyMeta(post);
   return `
@@ -395,7 +402,10 @@ function renderDiscover() {
                 <p>${item.author} · ${item.time}</p>
                 <h2>${item.title}</h2>
                 <p>${item.text}</p>
-                <small>${item.count} · ${ensurePostInteractions(item).status}</small>
+                <div class="discover-card-meta">
+                  <small>${postContactText(ensurePostInteractions(item))}</small>
+                  <strong class="post-status-pill ${postStatusClass(item.status)}">${item.status}</strong>
+                </div>
               </div>
               <span>${categoryLabel(item.category)}</span>
             </article>
@@ -436,6 +446,7 @@ function ensurePostInteractions(post) {
   post.showReportForm = Boolean(post.showReportForm);
   post.status = post.status || "未解决";
   post.aiChecked = Boolean(post.aiChecked);
+  post.contactCount = Number(post.contactCount || 0);
   return post;
 }
 
@@ -446,8 +457,14 @@ function canManagePostStatus(post) {
 }
 
 function postActionLabel(post) {
+  if (post.status === "已解决") return "已解决";
+  if (post.status === "已过期") return "已过期";
   if (post.author === profileState.name) return "查看沟通";
   return post.category === "ask" ? "我想帮助" : "邀请帮助";
+}
+
+function canOpenPostMessage(post) {
+  return post.status !== "已解决" && post.status !== "已过期";
 }
 
 function postStatusClass(status) {
@@ -480,7 +497,7 @@ function renderPostDetail() {
     <div class="post-detail-actions">
       <button type="button" class="${post.liked ? "active" : ""}" data-post-action="like">点赞 ${post.likes}</button>
       <button type="button" class="${post.favorited ? "active" : ""}" data-post-action="favorite">收藏 ${post.favorites}</button>
-      <button type="button" data-post-action="message">${postActionLabel(post)}</button>
+      <button type="button" class="${!canOpenPostMessage(post) ? "disabled" : ""}" data-post-action="message" ${!canOpenPostMessage(post) ? "disabled" : ""}>${postActionLabel(post)}</button>
       <button type="button" class="${post.reported ? "reported" : ""}" data-post-action="report">${post.reported ? "已投诉" : "投诉"}</button>
     </div>
     ${renderPostStatusControls(post)}
@@ -543,6 +560,7 @@ function handlePostAction(action) {
   const post = activePostId ? ensurePostInteractions(findCommunityPost(activePostId)) : null;
   if (!post) return;
   if (action === "message") {
+    if (!canOpenPostMessage(post)) return;
     openPostPrivateMessage(post);
     return;
   }
@@ -610,6 +628,7 @@ function openPostPrivateMessage(post) {
   const chatId = `DM-${post.id}`;
   const title = post.category === "ask" ? `我想帮助 ${post.author}` : `邀请帮助 ${post.author}`;
   const initialText = post.category === "ask" ? `你好，我看到你的求助帖，想了解一下细节，看能不能帮上忙。` : `你好，我看到你的帮助帖，想邀请你看看这个需求是否方便协助。`;
+  if (!canOpenPostMessage(post)) return;
   if (!orders.some((item) => item.id === chatId)) {
     orders.unshift({
       id: chatId,
@@ -619,6 +638,8 @@ function openPostPrivateMessage(post) {
       category: post.category || "chat",
       postId: post.id,
     });
+    post.contactCount = Number(post.contactCount || 0) + 1;
+    post.count = postContactText(post);
   }
   if (!chats[chatId]) {
     chats[chatId] = [
